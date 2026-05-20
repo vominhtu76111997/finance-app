@@ -875,7 +875,7 @@ function updateSyncUI(connected,label){const dot=$('syncStatus');const lbl=$('sy
 function init(){
   document.body.setAttribute('data-theme',theme);$('openingBal').value=opening||'';
   const now=new Date();$('dashDate').textContent=now.toLocaleDateString('vi-VN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});$('sidebarDate').textContent=now.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'});
-  if(syncUrl){$('syncUrl').value=syncUrl;updateSyncUI(true,'Đã lưu URL');syncConnected=true;}
+  if(syncUrl){$('syncUrl').value=syncUrl;updateSyncUI(true,'Đã lưu URL');syncConnected=true;setTimeout(()=>{cloudPull().then(()=>console.log('Auto-pull OK')).catch(e=>console.warn('Auto-pull failed:',e));},500);}
   rebuildSelects();onCalcCatChange();updateAll();
 }
 init();
