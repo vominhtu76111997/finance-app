@@ -975,18 +975,15 @@ async function cloudPull(){if(!syncUrl){showToast('Chưa kết nối',false);ret
 async function cloudPushAll(){if(!syncUrl){showToast('Chưa kết nối',false);return;}showToast('Push...');updateSyncUI(true,'Push...');try{
 const payload=JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,allTx:txData,allInv:investments});
 const form=new FormData();form.append('action','pushAll');form.append('payload',payload);
-const res=await fetch(syncUrl,{method:'POST',body:form,redirect:'follow'});
-const text=await res.text();
-let ok=false;try{const j=JSON.parse(text);ok=j.ok;}catch(e){ok=res.ok;}
-if(ok){showToast('Push OK!');playSuccess();updateSyncUI(true,'Pushed '+new Date().toLocaleTimeString('vi-VN'));}
-else{showToast('Push lỗi',false);}
+const res=await fetch(syncUrl,{method:'POST',body:form,mode:'no-cors',redirect:'follow'});
+showToast('Push OK!');playSuccess();updateSyncUI(true,'Pushed '+new Date().toLocaleTimeString('vi-VN'));
 }catch(e){showToast('Push: '+e.message,false);}}
 async function cloudAddTx(tx){if(!syncUrl||!syncConnected)return;try{const r=await cloudSend('addTx',tx);if(r&&r.ok)updateSyncUI(true,'↑ '+new Date().toLocaleTimeString('vi-VN'));else updateSyncUI(true,'⚠ Lỗi');}catch(e){updateSyncUI(true,'⚠ Lỗi');}}
 function cloudDeleteTx(id){if(!syncUrl||!syncConnected)return;jsonp(syncUrl+'?action=deleteTx&id='+id).catch(()=>{});}
 function cloudAddInv(inv){if(!syncUrl||!syncConnected)return;cloudSend('addInvestment',inv).catch(()=>{});}
 function cloudDeleteInv(id){if(!syncUrl||!syncConnected)return;jsonp(syncUrl+'?action=deleteInvestment&id='+id).catch(()=>{});}
 function cloudUpdateInv(data){if(!syncUrl||!syncConnected)return;cloudSend('updateInvestment',data).catch(()=>{});}
-function cloudSaveSettings(){if(!syncUrl||!syncConnected)return;cloudSend('saveSettings',{opening,catsChi,catsThu,budgets,theme,soundOn}).catch(()=>{});}
+function cloudSaveSettings(){if(!syncUrl||!syncConnected)return;const form=new FormData();form.append('action','saveSettings');form.append('payload',JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn}));fetch(syncUrl,{method:'POST',body:form,mode:'no-cors'}).catch(()=>{});}
 function updateSyncUI(connected,label){const dot=$('syncStatus');const lbl=$('syncLabel');if(dot)dot.style.background=connected?'var(--green)':'var(--text3)';if(lbl)lbl.textContent=label;}
 
 /* ── INIT ── */
