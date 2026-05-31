@@ -998,12 +998,13 @@ function init(){
   if(syncUrl){$('syncUrl').value=syncUrl;updateSyncUI(true,'Đã lưu URL');syncConnected=true;}
   rebuildSelects();onCalcCatChange();updateAll();
 }
+let weekBudgetData=JSON.parse(localStorage.getItem('fin_week_budget')||'null');
+let installments=JSON.parse(localStorage.getItem('fin_installments')||'[]');
 init();
 
 /* ────────────────────────────────────────────
    WEEKLY BUDGET — Smart với rollover & auto-deduct
 ──────────────────────────────────────────── */
-let weekBudgetData=JSON.parse(localStorage.getItem('fin_week_budget')||'null');
 
 function getWeekBounds(year,month){
   const lastDay=new Date(year,month+1,0).getDate();
@@ -1165,7 +1166,6 @@ function calcWeekBudget(){
 /* ────────────────────────────────────────────
    TRẢ GÓP / INSTALLMENT TRACKER
 ──────────────────────────────────────────── */
-let installments = JSON.parse(localStorage.getItem('fin_installments')||'[]');
 function saveInstallments(){localStorage.setItem('fin_installments',JSON.stringify(installments));}
 
 function calcTgMonthly(){
