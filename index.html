@@ -309,20 +309,25 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
   <div class="metrics" id="dashMetrics"></div>
   <!-- WIDGET: Ngân sách tuần -->
   <div class="card" id="weekBudgetCard" style="margin-bottom:12px;">
-    <div class="card-title" style="color:var(--accent2);">📅 Ngân sách tuần này</div>
-    <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:flex-end;margin-bottom:12px;">
-      <div class="field" style="margin:0;">
-        <label>Tiền còn lại tháng này (₫)</label>
-        <div class="smart-input-wrap">
-          <input type="number" id="weekBudgetInput" placeholder="Nhập số tiền..." step="any" min="0"
-            oninput="smartPreview(this,'weekBudgetPreview');calcWeekBudget()"
-            onkeydown="if(event.key==='Enter')calcWeekBudget()"/>
-          <span class="smart-preview" id="weekBudgetPreview"></span>
-        </div>
-      </div>
-      <button class="btn btn-accent" onclick="calcWeekBudget()" style="height:36px;">Tính</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div class="card-title" style="color:var(--accent2);margin:0;">📅 Ngân sách tuần</div>
+      <button class="btn" onclick="resetWeekBudget()" style="font-size:10px;padding:4px 10px;" title="Xóa ngân sách">✕ Xóa</button>
     </div>
-    <div id="weekBudgetResult" style="display:none;"></div>
+    <div id="weekBudgetSetup">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:flex-end;">
+        <div class="field" style="margin:0;">
+          <label>Tổng tiền được dùng tháng này (₫)</label>
+          <div class="smart-input-wrap">
+            <input type="number" id="weekBudgetInput" placeholder="Nhập ngân sách tháng..." step="any" min="0"
+              oninput="smartPreview(this,'weekBudgetPreview')"
+              onkeydown="if(event.key==='Enter')saveWeekBudget()"/>
+            <span class="smart-preview" id="weekBudgetPreview"></span>
+          </div>
+        </div>
+        <button class="btn btn-accent" onclick="saveWeekBudget()" style="height:36px;">Lưu</button>
+      </div>
+    </div>
+    <div id="weekBudgetResult"></div>
   </div>
   <div class="entry-row">
     <div class="card">
@@ -667,7 +672,7 @@ function updateAll(){
     <div class="metric"><div class="label">Chi tháng</div><div class="val val-red">${fmt(chi)}</div><div class="sub-val">${mTx.filter(t=>t.type==='chi').length} giao dịch</div></div>
     <div class="metric"><div class="label">Ròng</div><div class="val ${net>=0?'val-green':'val-red'}">${net>=0?'+':''}${fmt(net)}</div><div class="sub-val">${net>=0?'Thặng dư':'Thâm hụt'}</div></div>
     <div class="metric"><div class="label">Tài khoản</div><div class="val val-blue">${fmt(accTotal)}</div><div class="sub-val">${accounts.length} TK</div></div>`;
-  renderMonthList(mTx);renderMonthChart(mTx);
+  renderMonthList(mTx);renderMonthChart(mTx);calcWeekBudget();
 }
 
 function renderMonthList(txs){
@@ -996,78 +1001,165 @@ function init(){
 init();
 
 /* ────────────────────────────────────────────
-   WEEKLY BUDGET CALCULATOR
+   WEEKLY BUDGET — Smart với rollover & auto-deduct
 ──────────────────────────────────────────── */
+let weekBudgetData=JSON.parse(localStorage.getItem('fin_week_budget')||'null');
+
+function getWeekBounds(year,month){
+  const lastDay=new Date(year,month+1,0).getDate();
+  const weeks=[];
+  let ws=1;
+  for(let d=1;d<=lastDay;d++){
+    const dow=new Date(year,month,d).getDay();
+    if(dow===0||d===lastDay){
+      weeks.push({start:ws,end:d});
+      ws=d+1;
+    }
+  }
+  return weeks;
+}
+
+function saveWeekBudget(){
+  const raw=parseFloat($('weekBudgetInput').value)||0;
+  const total=raw<1000?raw*1000:raw;
+  if(!total){showToast('Nhập số tiền!',false);return;}
+  const now=new Date();
+  weekBudgetData={month:now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'),total:total};
+  localStorage.setItem('fin_week_budget',JSON.stringify(weekBudgetData));
+  showToast('Đã lưu ngân sách tháng!');
+  calcWeekBudget();
+}
+
+function resetWeekBudget(){
+  if(!confirm('Xóa ngân sách tháng này?'))return;
+  weekBudgetData=null;
+  localStorage.removeItem('fin_week_budget');
+  $('weekBudgetInput').value='';
+  $('weekBudgetResult').innerHTML='';
+  $('weekBudgetSetup').style.display='';
+}
+
 function calcWeekBudget(){
-  const raw = parseFloat($('weekBudgetInput').value)||0;
-  const budget = raw < 1000 ? raw*1000 : raw;
-  const res = $('weekBudgetResult');
-  if(!budget){res.style.display='none';return;}
-  
-  const now = new Date();
-  const todayDate = now.getDate();
-  const month = now.getMonth();
-  const year = now.getFullYear();
-  const lastDay = new Date(year, month+1, 0).getDate();
-  
-  // Tìm tất cả các ngày Chủ nhật còn lại trong tháng (kể cả hôm nay nếu là CN)
-  const sundays = [];
-  for(let d = todayDate; d <= lastDay; d++){
-    const day = new Date(year, month, d);
-    if(day.getDay()===0) sundays.push(d); // 0 = Sunday
+  const res=$('weekBudgetResult');
+  const setup=$('weekBudgetSetup');
+  const input=$('weekBudgetInput');
+  if(!res)return;
+
+  const now=new Date();
+  const curMonthKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+
+  // Nếu chưa có ngân sách hoặc khác tháng → hiện form nhập
+  if(!weekBudgetData||weekBudgetData.month!==curMonthKey){
+    if(setup)setup.style.display='';
+    res.innerHTML='<div style="font-size:11px;color:var(--text3);padding:8px 0;">Nhập ngân sách tháng để bắt đầu theo dõi chi tiêu theo tuần.</div>';
+    return;
   }
-  
-  // Nếu không còn CN nào → dùng số ngày còn lại / 7
-  const weeksLeft = sundays.length > 0 ? sundays.length : Math.ceil((lastDay - todayDate + 1) / 7);
-  const perWeek = weeksLeft > 0 ? budget / weeksLeft : budget;
-  const daysLeft = lastDay - todayDate + 1;
-  const perDay = budget / daysLeft;
-  
-  // Build weeks info
-  let weeksHtml = '';
-  if(sundays.length > 0){
-    // Tạo "tuần" từ chủ nhật này đến CN tiếp theo
-    const allSundays = [...sundays];
-    for(let i=0; i<allSundays.length; i++){
-      const startD = i===0 ? todayDate : allSundays[i-1]+1;
-      const endD = allSundays[i];
-      const isPast = false; // đây là các tuần còn lại
-      const isThis = i===0;
-      const monthStr = now.toLocaleDateString('vi-VN',{month:'numeric'});
-      weeksHtml += `<div class="week-chip${isThis?' this-week':''}">
-        <div style="font-size:13px;font-weight:700;">${fmt(perWeek)}</div>
-        <div class="week-chip-lbl">T${i+1}: ${startD}/${month+1}–${endD}/${month+1}</div>
-      </div>`;
-    }
-    // Nếu còn ngày sau CN cuối
-    const lastSunday = allSundays[allSundays.length-1];
-    if(lastSunday < lastDay){
-      weeksHtml += `<div class="week-chip">
-        <div style="font-size:13px;font-weight:700;">${fmt(perWeek)}</div>
-        <div class="week-chip-lbl">T${allSundays.length+1}: ${lastSunday+1}/${month+1}–${lastDay}/${month+1}</div>
-      </div>`;
+
+  // Đã có ngân sách → ẩn form, hiện số
+  if(setup)setup.style.display='none';
+  if(input)input.value=weekBudgetData.total;
+
+  const total=weekBudgetData.total;
+  const year=now.getFullYear();
+  const month=now.getMonth();
+  const todayDate=now.getDate();
+  const weeks=getWeekBounds(year,month);
+  const basePerWeek=Math.round(total/weeks.length);
+
+  // Lấy chi tiêu tháng này
+  const monthChi=txData.filter(t=>{
+    if(t.type!=='chi')return false;
+    const d=new Date(t.date);
+    return d.getMonth()===month&&d.getFullYear()===year;
+  });
+
+  // Tìm tuần hiện tại
+  let currentIdx=weeks.length-1;
+  for(let i=0;i<weeks.length;i++){
+    if(todayDate>=weeks[i].start&&todayDate<=weeks[i].end){currentIdx=i;break;}
+  }
+
+  // Tính chi tiêu & rollover cho từng tuần
+  let rollover=0;
+  const details=[];
+  for(let i=0;i<weeks.length;i++){
+    const w=weeks[i];
+    const spent=monthChi.filter(t=>{
+      const d=new Date(t.date).getDate();
+      return d>=w.start&&d<=w.end;
+    }).reduce((s,t)=>s+t.amount,0);
+
+    const budget=basePerWeek+rollover;
+    const remaining=budget-spent;
+    const isPast=i<currentIdx;
+    const isCurrent=i===currentIdx;
+    const isFuture=i>currentIdx;
+
+    details.push({...w,budget,spent,remaining,isPast,isCurrent,isFuture,idx:i});
+
+    // Rollover: tuần đã qua → dư/thiếu chuyển sang tuần tiếp theo
+    if(isPast){
+      rollover=remaining; // dương = dư, âm = thiếu
+    }else{
+      rollover=0;
     }
   }
-  
-  res.style.display='block';
-  res.innerHTML = `
-    <div class="week-budget-result">
-      <div class="week-metric">
-        <div class="week-metric-val">${fmt(perWeek)}</div>
-        <div class="week-metric-lbl">Mỗi tuần được dùng</div>
-      </div>
-      <div class="week-metric">
-        <div class="week-metric-val" style="font-size:16px;">${weeksLeft} tuần</div>
-        <div class="week-metric-lbl">Còn lại trong tháng (${daysLeft} ngày)</div>
-      </div>
-      <div class="week-metric">
-        <div class="week-metric-val" style="font-size:16px;">${fmt(perDay)}</div>
-        <div class="week-metric-lbl">Mỗi ngày (tham khảo)</div>
-      </div>
+
+  const totalSpent=monthChi.reduce((s,t)=>s+t.amount,0);
+  const totalRemaining=total-totalSpent;
+  const cur=details[currentIdx];
+
+  // ── Render ──
+  let html='';
+
+  // Tổng quan
+  const remColor=totalRemaining>=0?'#1d9e75':'#d85a30';
+  const curColor=cur.remaining>=0?'#1d9e75':'#d85a30';
+  html+=`<div class="week-budget-result" style="margin-bottom:12px;">
+    <div class="week-metric">
+      <div class="week-metric-val" style="color:${curColor};font-size:17px;">${cur.remaining>=0?'':'−'}${fmt(Math.abs(cur.remaining))}</div>
+      <div class="week-metric-lbl">Tuần này còn</div>
     </div>
-    ${weeksHtml ? `<div style="margin-top:10px;font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;">Phân bổ theo tuần</div><div class="week-timeline">${weeksHtml}</div>` : ''}
-    <div style="font-size:10px;color:var(--text3);margin-top:8px;">* Tuần tính từ hôm nay ${todayDate}/${month+1} đến cuối tháng. Mỗi tuần bắt đầu từ Chủ nhật.</div>
-  `;
+    <div class="week-metric">
+      <div class="week-metric-val" style="color:${remColor};font-size:17px;">${totalRemaining>=0?'':'−'}${fmt(Math.abs(totalRemaining))}</div>
+      <div class="week-metric-lbl">Tháng còn</div>
+    </div>
+    <div class="week-metric">
+      <div class="week-metric-val" style="font-size:15px;color:var(--text3);">${fmt(totalSpent)}</div>
+      <div class="week-metric-lbl">Đã chi tháng này</div>
+    </div>
+  </div>`;
+
+  // Timeline tuần
+  html+=`<div style="font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;">
+    Chi tiết ${weeks.length} tuần · Ngân sách: ${fmt(total)} · ${fmt(basePerWeek)}/tuần
+  </div>`;
+  html+='<div class="week-timeline">';
+  for(const w of details){
+    const m=month+1;
+    let cls='week-chip';
+    if(w.isCurrent)cls+=' this-week';
+    if(w.isPast)cls+=' past-week';
+    const remC=w.remaining>=0?'#1d9e75':'#d85a30';
+    const budgetNote=w.budget!==basePerWeek?(w.budget>basePerWeek?' (+dư)':' (−lố)'):'';
+    html+=`<div class="${cls}">
+      <div style="font-size:8px;opacity:.7;margin-bottom:2px;">T${w.idx+1}: ${w.start}/${m}–${w.end}/${m}</div>
+      <div style="font-size:12px;font-weight:700;color:${remC};">${w.remaining>=0?'':'−'}${fmt(Math.abs(w.remaining))}</div>
+      <div style="font-size:8px;margin-top:2px;color:var(--text3);">
+        ${w.isPast?'Đã dùng':w.isCurrent?'Còn lại':'Dự kiến'}${budgetNote}
+      </div>
+      ${w.spent>0?`<div style="font-size:8px;color:#d85a30;">Chi: ${fmt(w.spent)}</div>`:''}
+    </div>`;
+  }
+  html+='</div>';
+
+  // Nút chỉnh sửa
+  html+=`<div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+    <button class="btn" onclick="$('weekBudgetSetup').style.display='';$('weekBudgetInput').value=${total};$('weekBudgetInput').focus();" style="font-size:10px;padding:4px 10px;">✏️ Sửa ngân sách</button>
+    <span style="font-size:9px;color:var(--text3);">Tháng ${month+1}/${year} · Tuần ${currentIdx+1}/${weeks.length} (${todayDate}/${month+1})</span>
+  </div>`;
+
+  res.innerHTML=html;
 }
 
 /* ────────────────────────────────────────────
