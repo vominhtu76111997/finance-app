@@ -1014,13 +1014,21 @@ function getSavings(){
   const now=new Date();
   const curKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
   if(weekBudgetData.month!==curKey)return 0;
-  // Tổng tài sản - ngân sách tuần = tiền tiết kiệm (không được đụng vào)
   const invPnL=investments.reduce((s,i)=>(i.curPrice-i.buyPrice)*i.qty+s,0);
   const accTotal=totalAccounts();
   const allThu=txData.filter(t=>t.type==='thu').reduce((s,t)=>s+t.amount,0);
   const allChi=txData.filter(t=>t.type==='chi').reduce((s,t)=>s+t.amount,0);
   const totalAssets=opening+allThu-allChi+invPnL+accTotal;
-  return totalAssets-weekBudgetData.total;
+  // Chi tiêu tháng này
+  const monthChi=txData.filter(t=>{
+    if(t.type!=='chi')return false;
+    const d=new Date(t.date);
+    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+  }).reduce((s,t)=>s+t.amount,0);
+  // Chi trong ngân sách → tiết kiệm KHÔNG đổi
+  // Chi vượt ngân sách → tiết kiệm giảm theo phần vượt
+  const spentFromBudget=Math.min(monthChi,weekBudgetData.total);
+  return totalAssets+spentFromBudget-weekBudgetData.total;
 }
 let installments=JSON.parse(localStorage.getItem('fin_installments')||'[]');
 init();
