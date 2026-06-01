@@ -79,6 +79,10 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 .nav-item:hover{color:var(--text);background:rgba(128,128,128,.06);padding-left:20px;}
 .nav-item.active{color:var(--accent);border-left-color:transparent;background:rgba(93,202,165,.05);}
 .nav-item.active::before{width:3px;}
+
+.nav-emoji{font-size:16px;line-height:1;min-width:20px;text-align:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.2));}
+.nav-item{display:flex;align-items:center;gap:10px;}
+.nav-item.active .nav-emoji{transform:scale(1.15);}
 .nav-item svg{flex-shrink:0;width:15px;height:15px;transition:transform .2s;}
 .nav-item:hover svg{transform:scale(1.1);}
 /* TX ITEMS — slide in */
@@ -131,6 +135,10 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 .logo{padding:0 16px 16px;border-bottom:.5px solid var(--border);margin-bottom:8px;}
 .logo-title{font-size:14px;font-weight:700;letter-spacing:-.3px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}.logo-sub{font-size:10px;color:var(--text2);margin-top:2px;}
 .nav-section{font-size:9px;color:var(--text3);padding:12px 16px 4px;text-transform:uppercase;letter-spacing:.8px;}
+
+.nav-emoji{font-size:16px;line-height:1;min-width:20px;text-align:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.2));}
+.nav-item{display:flex;align-items:center;gap:10px;}
+.nav-item.active .nav-emoji{transform:scale(1.15);}
 .nav-item svg{flex-shrink:0;width:15px;height:15px;transition:transform .2s;}
 .sidebar-bottom{margin-top:auto;padding:10px 16px;border-top:.5px solid var(--border);}
 .opening-mini label{font-size:10px;color:var(--text2);display:block;margin-bottom:3px;}
@@ -280,31 +288,31 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 <nav class="sidebar">
   <div class="logo"><div class="logo-title">💰 Finance</div><div class="logo-sub" id="sidebarDate"></div></div>
   <div class="nav-section">Menu</div>
-  <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>Dashboard</span></div>
-  <div class="nav-item" data-page="accounts" onclick="showPage('accounts')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Tài khoản</span></div>
-  <div class="nav-item" data-page="history" onclick="showPage('history')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>Lịch sử</span></div>
-  <div class="nav-item" data-page="stats" onclick="showPage('stats')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Thống kê</span></div>
-  <div class="nav-item" data-page="budget" onclick="showPage('budget')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Ngân sách</span></div>
-  <div class="nav-item" data-page="invest" onclick="showPage('invest')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span>Đầu tư</span></div>
-  <div class="nav-item" data-page="tragop" onclick="showPage('tragop')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span>Trả Góp</span></div>
-  <div class="nav-item" data-page="settings" onclick="showPage('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.26.46.84.78 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Cài đặt</span></div>
+  <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')"><span class="nav-emoji" style="color:#4A9EF5">📊</span><span>Dashboard</span></div>
+  <div class="nav-item" data-page="accounts" onclick="showPage('accounts')"><span class="nav-emoji" style="color:#A87FE0">💳</span><span>Tài khoản</span></div>
+  <div class="nav-item" data-page="invest" onclick="showPage('invest')"><span class="nav-emoji" style="color:#1D9E75">📈</span><span>Đầu tư</span></div>
+  <div class="nav-item" data-page="tragop" onclick="showPage('tragop')"><span class="nav-emoji" style="color:#F0B429">💰</span><span>Trả Góp</span></div>
+  <div class="nav-item" data-page="history" onclick="showPage('history')"><span class="nav-emoji" style="color:#3AAFA9">📋</span><span>Lịch sử</span></div>
+  <div class="nav-item" data-page="stats" onclick="showPage('stats')"><span class="nav-emoji" style="color:#6366F1">📉</span><span>Thống kê</span></div>
+  <div class="nav-item" data-page="budget" onclick="showPage('budget')"><span class="nav-emoji" style="color:#D85A30">🎯</span><span>Ngân sách</span></div>
+  <div class="nav-item" data-page="settings" onclick="showPage('settings')"><span class="nav-emoji" style="color:#888780">⚙️</span><span>Cài đặt</span></div>
   <div class="sidebar-bottom"><div class="opening-mini"><label>Số dư đầu kỳ (₫)</label><input type="number" id="openingBal" placeholder="0" step="1000" oninput="saveOpening();updateAll()"/></div></div>
 </nav>
 
 <div class="mobile-nav">
-  <button class="mob-nav-btn active" data-page="dashboard" onclick="showPage('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Home</button>
-  <button class="mob-nav-btn" data-page="accounts" onclick="showPage('accounts')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/></svg>TK</button>
-  <button class="mob-nav-btn" data-page="invest" onclick="showPage('invest')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>ĐT</button>
-  <button class="mob-nav-btn" data-page="tragop" onclick="showPage('tragop')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Góp</button>
-  <button class="mob-nav-btn" data-page="history" onclick="showPage('history')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8z"/></svg>Sử</button>
-  <button class="mob-nav-btn" data-page="settings" onclick="showPage('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>⚙</button>
+  <button class="mob-nav-btn active" data-page="dashboard" onclick="showPage('dashboard')"><span style="font-size:16px">📊</span>Home</button>
+  <button class="mob-nav-btn" data-page="accounts" onclick="showPage('accounts')"><span style="font-size:16px">💳</span>TK</button>
+  <button class="mob-nav-btn" data-page="invest" onclick="showPage('invest')"><span style="font-size:16px">📈</span>ĐT</button>
+  <button class="mob-nav-btn" data-page="tragop" onclick="showPage('tragop')"><span style="font-size:16px">💰</span>Góp</button>
+  <button class="mob-nav-btn" data-page="history" onclick="showPage('history')"><span style="font-size:16px">📋</span>Sử</button>
+  <button class="mob-nav-btn" data-page="settings" onclick="showPage('settings')"><span style="font-size:16px">⚙️</span>⚙</button>
 </div>
 
 <main class="main">
 
 <!-- DASHBOARD -->
 <div id="page-dashboard" class="page active">
-  <div class="topbar"><div class="topbar-left"><h1>Dashboard</h1><div class="sub" id="dashDate"></div></div><div class="topbar-actions"><button class="btn" onclick="exportCSV()">↓ CSV</button></div></div>
+  <div class="topbar"><div class="topbar-left"><h1>📊 Dashboard</h1><div class="sub" id="dashDate"></div></div><div class="topbar-actions"><button class="btn" onclick="exportCSV()">↓ CSV</button></div></div>
   <div class="month-nav"><button onclick="changeMonth(-1)">‹</button><div class="current-month" id="monthLabel"></div><button onclick="changeMonth(1)">›</button></div>
   <div class="metrics" id="dashMetrics"></div>
   <!-- WIDGET: Ngân sách tuần -->
@@ -355,7 +363,7 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 
 <!-- ACCOUNTS -->
 <div id="page-accounts" class="page">
-  <div class="topbar"><div class="topbar-left"><h1>Tài khoản</h1><div class="sub">Quản lý tiền mặt & ngân hàng</div></div></div>
+  <div class="topbar"><div class="topbar-left"><h1>💳 Tài khoản</h1><div class="sub">Quản lý tiền mặt & ngân hàng</div></div></div>
   <div class="metrics" id="accTotalMetric"></div>
   <div class="acc-grid" id="accGrid"></div>
   <div class="card">
@@ -380,7 +388,7 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 
 <!-- HISTORY -->
 <div id="page-history" class="page">
-  <div class="topbar"><div class="topbar-left"><h1>Lịch sử</h1><div class="sub">Toàn bộ giao dịch</div></div><button class="btn" onclick="exportCSV()">↓ CSV</button></div>
+  <div class="topbar"><div class="topbar-left"><h1>📋 Lịch sử</h1><div class="sub">Toàn bộ giao dịch</div></div><button class="btn" onclick="exportCSV()">↓ CSV</button></div>
   <div class="filter-row">
     <select id="filterType" onchange="renderHistory()"><option value="all">Tất cả</option><option value="thu">Thu</option><option value="chi">Chi</option></select>
     <select id="filterCat" onchange="renderHistory()"></select>
@@ -392,7 +400,7 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 
 <!-- STATS -->
 <div id="page-stats" class="page">
-  <div class="topbar"><div class="topbar-left"><h1>Thống kê</h1><div class="sub" id="statsPeriod"></div></div></div>
+  <div class="topbar"><div class="topbar-left"><h1>📉 Thống kê</h1><div class="sub" id="statsPeriod"></div></div></div>
   <div class="stats-grid">
     <div class="card"><div class="tx-header"><h3>Thu & chi 7 ngày</h3></div><div class="chart-wrap"><canvas id="weekChart"></canvas></div></div>
     <div class="card"><div class="tx-header"><h3>Chi theo danh mục</h3></div><div class="chart-wrap"><canvas id="catChart"></canvas></div></div>
@@ -402,13 +410,13 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 
 <!-- BUDGET -->
 <div id="page-budget" class="page">
-  <div class="topbar"><div class="topbar-left"><h1>Ngân sách tháng</h1><div class="sub">Giới hạn chi theo danh mục</div></div></div>
+  <div class="topbar"><div class="topbar-left"><h1>🎯 Ngân sách tháng</h1><div class="sub">Giới hạn chi theo danh mục</div></div></div>
   <div class="card"><div id="budgetList"></div></div>
 </div>
 
 <!-- INVEST -->
 <div id="page-invest" class="page">
-  <div class="topbar"><div class="topbar-left"><h1>Đầu tư</h1><div class="sub">Danh mục đầu tư & máy tính mua</div></div></div>
+  <div class="topbar"><div class="topbar-left"><h1>📈 Đầu tư</h1><div class="sub">Danh mục đầu tư & máy tính mua</div></div></div>
   <div class="metrics" id="invMetrics"></div>
   <!-- CALCULATOR -->
   <div class="calc-card">
@@ -451,7 +459,7 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 <!-- TRẢ GÓP -->
 <div id="page-tragop" class="page">
   <div class="topbar">
-    <div class="topbar-left"><h1>Trả Góp & Nợ</h1><div class="sub">Theo dõi hành trình trả nợ của bạn</div></div>
+    <div class="topbar-left"><h1>💰 Trả Góp & Nợ</h1><div class="sub">Theo dõi hành trình trả nợ của bạn</div></div>
   </div>
 
   <!-- ADD INSTALLMENT FORM -->
@@ -500,7 +508,7 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 
 <!-- SETTINGS -->
 <div id="page-settings" class="page">
-  <div class="topbar"><div class="topbar-left"><h1>Cài đặt</h1><div class="sub">Tùy chỉnh app</div></div></div>
+  <div class="topbar"><div class="topbar-left"><h1>⚙️ Cài đặt</h1><div class="sub">Tùy chỉnh app</div></div></div>
   <div class="settings-section"><h2>Giao diện</h2><div class="theme-row" id="themeRow"></div><div class="toggle-row"><span>Âm thanh khi thao tác</span><button class="toggle" id="soundToggle" onclick="toggleSound()"></button></div></div>
   <div class="settings-section"><h2>Danh mục chi</h2><div class="cat-list" id="catListChi"></div><div style="font-size:10px;color:var(--text3);margin-bottom:6px;">Chọn màu & icon:</div><div class="color-picker-row" id="colorPickerChi"></div><div class="icon-picker" id="iconPickerChi"></div><div class="add-cat-row"><input type="text" id="newCatNameChi" placeholder="Tên danh mục chi mới..." onkeydown="if(event.key==='Enter')addCat('chi')"/><button class="btn btn-accent" onclick="addCat('chi')">+ Thêm</button></div></div>
   <div class="settings-section"><h2>Danh mục thu</h2><div class="cat-list" id="catListThu"></div><div style="font-size:10px;color:var(--text3);margin-bottom:6px;">Chọn màu & icon:</div><div class="color-picker-row" id="colorPickerThu"></div><div class="icon-picker" id="iconPickerThu"></div><div class="add-cat-row"><input type="text" id="newCatNameThu" placeholder="Tên danh mục thu mới..." onkeydown="if(event.key==='Enter')addCat('thu')"/><button class="btn btn-accent" onclick="addCat('thu')">+ Thêm</button></div></div>
@@ -781,7 +789,8 @@ function calcBuy(){
   let displayQty=qty,fullInt=Math.floor(qty),remain=money-(fullInt*price),detail='';
 
   if(asset.isGold){
-    if(price>=50000000){
+    const isLuongPrice=asset.priceUnit==='lượng'||price>=50000000;
+    if(isLuongPrice){
       // Giá 1 lượng
       unit='lượng';displayQty=qty;fullInt=Math.floor(qty);
       const extraChi=(qty-fullInt)*10;remain=money-(fullInt*price);
@@ -791,7 +800,7 @@ function calcBuy(){
         detail=`= ${fullInt} lượng chẵn`;
       } else {
         const chiQty=qty*10;unit='chỉ';displayQty=chiQty;fullInt=Math.floor(chiQty);remain=money-(fullInt*(price/10));
-        detail=`(chưa đủ 1 lượng → quy ${chiQty.toFixed(1)} chỉ)`;
+        detail=`(chưa đủ 1 lượng → quy ${chiQty.toFixed(2)} chỉ)`;
       }
     } else {
       // Giá 1 chỉ
@@ -800,7 +809,7 @@ function calcBuy(){
       if(luong>=1)detail=`= ${luong} lượng${chiDu>0?' '+chiDu+' chỉ':''}`;
     }
   }
-  const qtyStr=displayQty%1===0?displayQty.toLocaleString('vi-VN'):displayQty.toFixed(1);
+  const qtyStr=displayQty>=100?Math.round(displayQty).toLocaleString('vi-VN'):displayQty<0.01?displayQty.toFixed(4):displayQty.toFixed(2);
   const fullStr=fullInt.toLocaleString('vi-VN');
   el.innerHTML=`
     <div class="calc-big">${qtyStr} ${unit} ${displayName}</div>
