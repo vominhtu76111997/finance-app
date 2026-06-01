@@ -671,7 +671,7 @@ function updateAll(){
     <div class="metric"><div class="label">Thu tháng</div><div class="val val-green">${fmt(thu)}</div><div class="sub-val">${mTx.filter(t=>t.type==='thu').length} giao dịch</div></div>
     <div class="metric"><div class="label">Chi tháng</div><div class="val val-red">${fmt(chi)}</div><div class="sub-val">${mTx.filter(t=>t.type==='chi').length} giao dịch</div></div>
     <div class="metric"><div class="label">Ròng</div><div class="val ${net>=0?'val-green':'val-red'}">${net>=0?'+':''}${fmt(net)}</div><div class="sub-val">${net>=0?'Thặng dư':'Thâm hụt'}</div></div>
-    <div class="metric"><div class="label">Tiết kiệm</div><div class="val ${getSavings()>=0?'val-green':'val-red'}">${getSavings()>=0?'':'−'}${fmt(Math.abs(getSavings()))}</div><div class="sub-val">${weekBudgetData?'Ngân sách còn lại':'Chưa đặt ngân sách'}</div></div>`;
+    <div class="metric"><div class="label">Tiết kiệm</div><div class="val ${getSavings()>=0?'val-green':'val-red'}">${getSavings()>=0?'':'−'}${fmt(Math.abs(getSavings()))}</div><div class="sub-val">${weekBudgetData?'Tài sản − Ngân sách tháng':'Chưa đặt ngân sách'}</div></div>`;
   renderMonthList(mTx);renderMonthChart(mTx);calcWeekBudget();
 }
 
@@ -1005,12 +1005,13 @@ function getSavings(){
   const now=new Date();
   const curKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
   if(weekBudgetData.month!==curKey)return 0;
-  const monthChi=txData.filter(t=>{
-    if(t.type!=='chi')return false;
-    const d=new Date(t.date);
-    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
-  }).reduce((s,t)=>s+t.amount,0);
-  return weekBudgetData.total-monthChi;
+  // Tổng tài sản - ngân sách tuần = tiền tiết kiệm (không được đụng vào)
+  const invPnL=investments.reduce((s,i)=>(i.curPrice-i.buyPrice)*i.qty+s,0);
+  const accTotal=totalAccounts();
+  const allThu=txData.filter(t=>t.type==='thu').reduce((s,t)=>s+t.amount,0);
+  const allChi=txData.filter(t=>t.type==='chi').reduce((s,t)=>s+t.amount,0);
+  const totalAssets=opening+allThu-allChi+invPnL+accTotal;
+  return totalAssets-weekBudgetData.total;
 }
 let installments=JSON.parse(localStorage.getItem('fin_installments')||'[]');
 init();
