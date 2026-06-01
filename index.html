@@ -1201,16 +1201,16 @@ function calcWeekBudget(){
 function saveInstallments(){localStorage.setItem('fin_installments',JSON.stringify(installments));}
 
 function calcTgMonthly(){
-  const total = parseFloat($('tgTotal')&&$('tgTotal').value)||0;
+  const rawTotal = parseFloat($('tgTotal')&&$('tgTotal').value)||0;
+  const total = smartAmount(rawTotal);
   const months = parseInt($('tgMonths')&&$('tgMonths').value)||0;
   const prev = $('tgCalcPreview');
   if(!prev) return;
   if(total>0 && months>0){
     const per = total/months;
-    // auto-fill monthly field if empty
     const perField = $('tgPerMonth');
     if(perField && (!perField.value || parseFloat(perField.value)===0)){
-      perField.value = Math.round(per);
+      perField.value = Math.round(per/1000);
       smartPreview(perField,'tgPerP');
     }
     prev.textContent = `→ Mỗi tháng: ${fmtVN(Math.round(per))} · Tổng ${months} tháng = ${fmtVN(total)}`;
@@ -1221,9 +1221,9 @@ function calcTgMonthly(){
 
 function addInstallment(){
   const name = ($('tgName').value||'').trim();
-  const total = parseFloat($('tgTotal').value)||0;
+  const total = smartAmount(parseFloat($('tgTotal').value)||0);
   const months = parseInt($('tgMonths').value)||0;
-  const perMonth = parseFloat($('tgPerMonth').value)||0;
+  const perMonth = smartAmount(parseFloat($('tgPerMonth').value)||0);
   const startDate = $('tgStartDate').value || new Date().toISOString().slice(0,10);
   if(!name){showToast('Nhập tên khoản vay!',false);return;}
   if(!total||!months){showToast('Nhập đủ tổng tiền & số tháng!',false);return;}
