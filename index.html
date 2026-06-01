@@ -671,7 +671,7 @@ function updateAll(){
     <div class="metric"><div class="label">Thu tháng</div><div class="val val-green">${fmt(thu)}</div><div class="sub-val">${mTx.filter(t=>t.type==='thu').length} giao dịch</div></div>
     <div class="metric"><div class="label">Chi tháng</div><div class="val val-red">${fmt(chi)}</div><div class="sub-val">${mTx.filter(t=>t.type==='chi').length} giao dịch</div></div>
     <div class="metric"><div class="label">Ròng</div><div class="val ${net>=0?'val-green':'val-red'}">${net>=0?'+':''}${fmt(net)}</div><div class="sub-val">${net>=0?'Thặng dư':'Thâm hụt'}</div></div>
-    <div class="metric"><div class="label">Tài khoản</div><div class="val val-blue">${fmt(accTotal)}</div><div class="sub-val">${accounts.length} TK</div></div>`;
+    <div class="metric"><div class="label">Tiết kiệm</div><div class="val ${getSavings()>=0?'val-green':'val-red'}">${getSavings()>=0?'':'−'}${fmt(Math.abs(getSavings()))}</div><div class="sub-val">${weekBudgetData?'Ngân sách còn lại':'Chưa đặt ngân sách'}</div></div>`;
   renderMonthList(mTx);renderMonthChart(mTx);calcWeekBudget();
 }
 
@@ -976,9 +976,9 @@ function jsonp(url,timeout=20000){return new Promise((resolve,reject)=>{const cb
 function cloudSend(action,data){return jsonp(syncUrl+'?action='+action+'&payload='+encodeURIComponent(JSON.stringify(data)));}
 async function cloudConnect(){syncUrl=$('syncUrl').value.trim().replace(/\/+$/,'');if(!syncUrl){showToast('Nhập URL',false);return;}localStorage.setItem('fin_sync_url',syncUrl);showToast('Đang kết nối...');updateSyncUI(false,'Đang kết nối...');try{const r=await jsonp(syncUrl+'?action=ping');if(r&&r.ok){syncConnected=true;updateSyncUI(true,'Đã kết nối ✓');showToast('OK! Auto-pushing...');playSuccess();await cloudPushAll();}else{syncConnected=false;updateSyncUI(false,'Lỗi');showToast('Thất bại',false);}}catch(e){syncConnected=false;updateSyncUI(false,e.message);showToast(e.message,false);}}
 function cloudDisconnect(){syncUrl='';syncConnected=false;localStorage.removeItem('fin_sync_url');$('syncUrl').value='';updateSyncUI(false,'Chưa kết nối');showToast('Đã ngắt');}
-async function cloudPull(){if(!syncUrl){showToast('Chưa kết nối',false);return;}showToast('Pull...');updateSyncUI(true,'Pull...');try{const r=await jsonp(syncUrl+'?action=getAll');if(!r||!r.ok){showToast('Pull lỗi',false);return;}if(r.transactions){txData=r.transactions;save();}if(r.investments){investments=r.investments;saveInv();}if(r.catsChi){catsChi=r.catsChi;localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));}if(r.catsThu){catsThu=r.catsThu;localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));}if(r.budgets){budgets=r.budgets;localStorage.setItem('fin_budgets',JSON.stringify(budgets));}if(r.opening!==undefined){opening=r.opening;localStorage.setItem('fin_opening',opening);$('openingBal').value=opening||'';}rebuildSelects();updateAll();showToast('Pull: '+txData.length+' GD');playSuccess();updateSyncUI(true,'Synced '+new Date().toLocaleTimeString('vi-VN'));}catch(e){showToast('Pull: '+e.message,false);}}
+async function cloudPull(){if(!syncUrl){showToast('Chưa kết nối',false);return;}showToast('Pull...');updateSyncUI(true,'Pull...');try{const r=await jsonp(syncUrl+'?action=getAll');if(!r||!r.ok){showToast('Pull lỗi',false);return;}if(r.transactions){txData=r.transactions;save();}if(r.investments){investments=r.investments;saveInv();}if(r.catsChi){catsChi=r.catsChi;localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));}if(r.catsThu){catsThu=r.catsThu;localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));}if(r.budgets){budgets=r.budgets;localStorage.setItem('fin_budgets',JSON.stringify(budgets));}if(r.opening!==undefined){opening=r.opening;localStorage.setItem('fin_opening',opening);$('openingBal').value=opening||'';}if(r.weekBudget&&r.weekBudget!=='null'){weekBudgetData=r.weekBudget;localStorage.setItem('fin_week_budget',JSON.stringify(weekBudgetData));}rebuildSelects();updateAll();showToast('Pull: '+txData.length+' GD');playSuccess();updateSyncUI(true,'Synced '+new Date().toLocaleTimeString('vi-VN'));}catch(e){showToast('Pull: '+e.message,false);}}
 async function cloudPushAll(){if(!syncUrl){showToast('Chưa kết nối',false);return;}showToast('Push...');updateSyncUI(true,'Push...');try{
-const payload=JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,allTx:txData,allInv:investments});
+const payload=JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,weekBudget:weekBudgetData,allTx:txData,allInv:investments});
 const form=new FormData();form.append('action','pushAll');form.append('payload',payload);
 const res=await fetch(syncUrl,{method:'POST',body:form,mode:'no-cors',redirect:'follow'});
 showToast('Push OK!');playSuccess();updateSyncUI(true,'Pushed '+new Date().toLocaleTimeString('vi-VN'));
@@ -988,7 +988,7 @@ function cloudDeleteTx(id){if(!syncUrl||!syncConnected)return;jsonp(syncUrl+'?ac
 function cloudAddInv(inv){if(!syncUrl||!syncConnected)return;cloudSend('addInvestment',inv).catch(()=>{});}
 function cloudDeleteInv(id){if(!syncUrl||!syncConnected)return;jsonp(syncUrl+'?action=deleteInvestment&id='+id).catch(()=>{});}
 function cloudUpdateInv(data){if(!syncUrl||!syncConnected)return;cloudSend('updateInvestment',data).catch(()=>{});}
-function cloudSaveSettings(){if(!syncUrl||!syncConnected)return;const form=new FormData();form.append('action','saveSettings');form.append('payload',JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn}));fetch(syncUrl,{method:'POST',body:form,mode:'no-cors'}).catch(()=>{});}
+function cloudSaveSettings(){if(!syncUrl||!syncConnected)return;const form=new FormData();form.append('action','saveSettings');form.append('payload',JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,weekBudget:weekBudgetData}));fetch(syncUrl,{method:'POST',body:form,mode:'no-cors'}).catch(()=>{});}
 function updateSyncUI(connected,label){const dot=$('syncStatus');const lbl=$('syncLabel');if(dot)dot.style.background=connected?'var(--green)':'var(--text3)';if(lbl)lbl.textContent=label;}
 
 /* ── INIT ── */
@@ -999,6 +999,19 @@ function init(){
   rebuildSelects();onCalcCatChange();updateAll();
 }
 let weekBudgetData=JSON.parse(localStorage.getItem('fin_week_budget')||'null');
+
+function getSavings(){
+  if(!weekBudgetData)return 0;
+  const now=new Date();
+  const curKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  if(weekBudgetData.month!==curKey)return 0;
+  const monthChi=txData.filter(t=>{
+    if(t.type!=='chi')return false;
+    const d=new Date(t.date);
+    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+  }).reduce((s,t)=>s+t.amount,0);
+  return weekBudgetData.total-monthChi;
+}
 let installments=JSON.parse(localStorage.getItem('fin_installments')||'[]');
 init();
 
@@ -1022,13 +1035,19 @@ function getWeekBounds(year,month){
 
 function saveWeekBudget(){
   const raw=parseFloat($('weekBudgetInput').value)||0;
-  const total=raw<1000?raw*1000:raw;
-  if(!total){showToast('Nhập số tiền!',false);return;}
+  if(!raw){showToast('Nhập số tiền!',false);return;}
+  const total=smartAmount(raw);
   const now=new Date();
   weekBudgetData={month:now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'),total:total};
   localStorage.setItem('fin_week_budget',JSON.stringify(weekBudgetData));
+  // Sync lên cloud
+  if(syncUrl&&syncConnected){
+    const form=new FormData();form.append('action','saveSettings');
+    form.append('payload',JSON.stringify({weekBudget:weekBudgetData}));
+    fetch(syncUrl,{method:'POST',body:form,mode:'no-cors'}).catch(()=>{});
+  }
   showToast('Đã lưu ngân sách tháng!');
-  calcWeekBudget();
+  calcWeekBudget();updateAll();
 }
 
 function resetWeekBudget(){
@@ -1038,6 +1057,13 @@ function resetWeekBudget(){
   $('weekBudgetInput').value='';
   $('weekBudgetResult').innerHTML='';
   $('weekBudgetSetup').style.display='';
+  // Xóa trên cloud
+  if(syncUrl&&syncConnected){
+    const form=new FormData();form.append('action','saveSettings');
+    form.append('payload',JSON.stringify({weekBudget:'null'}));
+    fetch(syncUrl,{method:'POST',body:form,mode:'no-cors'}).catch(()=>{});
+  }
+  updateAll();
 }
 
 function calcWeekBudget(){
@@ -1058,7 +1084,7 @@ function calcWeekBudget(){
 
   // Đã có ngân sách → ẩn form, hiện số
   if(setup)setup.style.display='none';
-  if(input)input.value=weekBudgetData.total;
+  if(input)input.value=Math.round(weekBudgetData.total/1000);
 
   const total=weekBudgetData.total;
   const year=now.getFullYear();
@@ -1161,7 +1187,7 @@ function calcWeekBudget(){
 
   // Nút chỉnh sửa
   html+=`<div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
-    <button class="btn" onclick="$('weekBudgetSetup').style.display='';$('weekBudgetInput').value=${total};$('weekBudgetInput').focus();" style="font-size:10px;padding:4px 10px;">✏️ Sửa ngân sách</button>
+    <button class="btn" onclick="$('weekBudgetSetup').style.display='';$('weekBudgetInput').value=${Math.round(total/1000)};$('weekBudgetInput').focus();" style="font-size:10px;padding:4px 10px;">✏️ Sửa ngân sách</button>
     <span style="font-size:9px;color:var(--text3);">Tháng ${month+1}/${year} · Tuần ${currentIdx+1}/${weeks.length} (${todayDate}/${month+1})</span>
   </div>`;
 
