@@ -1061,6 +1061,17 @@ function init(){
   const now=new Date();$('dashDate').textContent=now.toLocaleDateString('vi-VN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});$('sidebarDate').textContent=now.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'});
   if(syncUrl){$('syncUrl').value=syncUrl;updateSyncUI(true,'Đã lưu URL');syncConnected=true;}
   rebuildSelects();onCalcCatChange();updateAll();
+  // Auto-pull from cloud on startup
+  if(syncUrl&&syncConnected){
+    setTimeout(()=>{
+      updateSyncUI(true,'Auto-pull...');
+      cloudPull().then(()=>{
+        updateSyncUI(true,'Synced '+new Date().toLocaleTimeString('vi-VN'));
+      }).catch(()=>{
+        updateSyncUI(true,'Auto-pull lỗi');
+      });
+    },500);
+  }
 }
 let weekBudgetData=JSON.parse(localStorage.getItem('fin_week_budget')||'null');
 
