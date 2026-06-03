@@ -616,7 +616,7 @@ function playClick(){if(!soundOn)return;const o=audioCtx.createOscillator(),g=au
 function playSuccess(){if(!soundOn)return;[800,1200].forEach((f,i)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.frequency.value=f;g.gain.value=.06;o.start(audioCtx.currentTime+i*.08);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+i*.08+.1);o.stop(audioCtx.currentTime+i*.08+.1);});}
 
 /* ── PERSIST ── */
-const save=()=>localStorage.setItem('fin_tx',JSON.stringify(txData));
+const save=()=>{localStorage.setItem('fin_tx',JSON.stringify(txData));_userDirty=true;};
 const saveCatsChi=()=>{localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));cloudSaveSettings();};
 const saveCatsThu=()=>{localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));cloudSaveSettings();};
 const saveBudgets=()=>{localStorage.setItem('fin_budgets',JSON.stringify(budgets));cloudSaveSettings();};
@@ -1036,11 +1036,13 @@ function importJSON(e){const file=e.target.files[0];if(!file)return;const r=new 
 
 /* ── CLOUD SYNC (Pure JSONP) ── */
 let _jid=0;
+let _userDirty=false; // true when user has made changes, blocks auto-pull overwrite
+let _autoPulling=false;
 function jsonp(url,timeout=20000){return new Promise((resolve,reject)=>{const cb='_fc'+(++_jid)+'_'+Date.now();const s=document.createElement('script');let done=false;window[cb]=function(d){done=true;delete window[cb];s.remove();resolve(d);};s.src=url+(url.includes('?')?'&':'?')+'callback='+cb;s.onerror=function(){if(!done){delete window[cb];s.remove();reject(new Error('Script error'));}};document.head.appendChild(s);setTimeout(()=>{if(!done){delete window[cb];s.remove();reject(new Error('Timeout'));}},timeout);});}
 function cloudSend(action,data){return jsonp(syncUrl+'?action='+action+'&payload='+encodeURIComponent(JSON.stringify(data)));}
 async function cloudConnect(){syncUrl=$('syncUrl').value.trim().replace(/\/+$/,'');if(!syncUrl){showToast('Nhập URL',false);return;}localStorage.setItem('fin_sync_url',syncUrl);showToast('Đang kết nối...');updateSyncUI(false,'Đang kết nối...');try{const r=await jsonp(syncUrl+'?action=ping');if(r&&r.ok){syncConnected=true;updateSyncUI(true,'Đã kết nối ✓');showToast('OK! Auto-pushing...');playSuccess();await cloudPushAll();}else{syncConnected=false;updateSyncUI(false,'Lỗi');showToast('Thất bại',false);}}catch(e){syncConnected=false;updateSyncUI(false,e.message);showToast(e.message,false);}}
 function cloudDisconnect(){syncUrl='';syncConnected=false;localStorage.removeItem('fin_sync_url');$('syncUrl').value='';updateSyncUI(false,'Chưa kết nối');showToast('Đã ngắt');}
-async function cloudPull(){if(!syncUrl){showToast('Chưa kết nối',false);return;}showToast('Pull...');updateSyncUI(true,'Pull...');try{const r=await jsonp(syncUrl+'?action=getAll');if(!r||!r.ok){showToast('Pull lỗi',false);return;}if(r.transactions){txData=r.transactions;save();}if(r.investments){investments=r.investments;saveInv();}if(r.catsChi){catsChi=r.catsChi;localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));}if(r.catsThu){catsThu=r.catsThu;localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));}if(r.budgets){budgets=r.budgets;localStorage.setItem('fin_budgets',JSON.stringify(budgets));}if(r.opening!==undefined){opening=r.opening;localStorage.setItem('fin_opening',opening);$('openingBal').value=opening||'';}if(r.weekBudget&&r.weekBudget!=='null'){weekBudgetData=r.weekBudget;localStorage.setItem('fin_week_budget',JSON.stringify(weekBudgetData));}rebuildSelects();updateAll();showToast('Pull: '+txData.length+' GD');playSuccess();updateSyncUI(true,'Synced '+new Date().toLocaleTimeString('vi-VN'));}catch(e){showToast('Pull: '+e.message,false);}}
+async function cloudPull(isAuto){if(!syncUrl){showToast('Chưa kết nối',false);return;}if(isAuto&&_userDirty){updateSyncUI(true,'Skip auto-pull (có thay đổi)');return;}if(!isAuto)showToast('Pull...');updateSyncUI(true,'Pull...');try{const r=await jsonp(syncUrl+'?action=getAll');if(!r||!r.ok){if(!isAuto)showToast('Pull lỗi',false);return;}if(isAuto&&_userDirty){updateSyncUI(true,'Skip (có thay đổi mới)');return;}let merged=false;if(r.transactions){const localMap={};txData.forEach(t=>{if(t.budgetType)localMap[t.id]=t.budgetType;});txData=r.transactions;txData.forEach(t=>{if(!t.budgetType&&localMap[t.id]){t.budgetType=localMap[t.id];merged=true;}});const oldDirty=_userDirty;localStorage.setItem('fin_tx',JSON.stringify(txData));_userDirty=oldDirty;}if(r.investments){investments=r.investments;saveInv();}if(r.catsChi){catsChi=r.catsChi;localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));}if(r.catsThu){catsThu=r.catsThu;localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));}if(r.budgets){budgets=r.budgets;localStorage.setItem('fin_budgets',JSON.stringify(budgets));}if(r.opening!==undefined){opening=r.opening;localStorage.setItem('fin_opening',opening);$('openingBal').value=opening||'';}if(r.weekBudget&&r.weekBudget!=='null'){weekBudgetData=r.weekBudget;localStorage.setItem('fin_week_budget',JSON.stringify(weekBudgetData));}rebuildSelects();updateAll();showToast('Pull: '+txData.length+' GD');playSuccess();updateSyncUI(true,'Synced '+new Date().toLocaleTimeString('vi-VN'));if(merged){setTimeout(()=>cloudPushAll(),1000);}}catch(e){if(!isAuto)showToast('Pull: '+e.message,false);}}
 async function cloudPushAll(){if(!syncUrl){showToast('Chưa kết nối',false);return;}showToast('Push...');updateSyncUI(true,'Push...');try{
 const payload=JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,weekBudget:weekBudgetData,allTx:txData,allInv:investments});
 const form=new FormData();form.append('action','pushAll');form.append('payload',payload);
@@ -1063,13 +1065,11 @@ function init(){
   rebuildSelects();onCalcCatChange();updateAll();
   // Auto-pull from cloud on startup
   if(syncUrl&&syncConnected){
+    _autoPulling=true;
     setTimeout(()=>{
+      if(_userDirty){_autoPulling=false;updateSyncUI(true,'Skip auto-pull');return;}
       updateSyncUI(true,'Auto-pull...');
-      cloudPull().then(()=>{
-        updateSyncUI(true,'Synced '+new Date().toLocaleTimeString('vi-VN'));
-      }).catch(()=>{
-        updateSyncUI(true,'Auto-pull lỗi');
-      });
+      cloudPull(true).then(()=>{_autoPulling=false;}).catch(()=>{_autoPulling=false;});
     },500);
   }
 }
