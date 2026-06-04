@@ -715,8 +715,8 @@ function addTx(type){
   updateAll();playSuccess();showToast(type==='thu'?'Thu: +'+fmt(amt):(chiType==='extra'?'Chi ngoài: -':'Chi: -')+fmt(amt),type==='thu');cloudAddTx(tx);
 }
 function deleteTx(id){txData=txData.filter(t=>t.id!==id);save();updateAll();if($('page-history').classList.contains('active'))renderHistory();playClick();cloudDeleteTx(id);}
-function clearMonth(){txData=txData.filter(t=>{const d=new Date(t.date);return!(d.getMonth()===viewMonth&&d.getFullYear()===viewYear);});save();updateAll();}
-function clearAllData(){if(!confirm('Xóa TOÀN BỘ?'))return;txData=[];investments=[];accounts=[];save();saveInv();saveAccounts();updateAll();showToast('Đã xóa');}
+function clearMonth(){txData=txData.filter(t=>{const d=new Date(t.date);return!(d.getMonth()===viewMonth&&d.getFullYear()===viewYear);});save();updateAll();cloudPushAll();showToast('Đã xóa giao dịch tháng');}
+function clearAllData(){if(!confirm('Xóa TOÀN BỘ?'))return;txData=[];investments=[];accounts=[];save();saveInv();saveAccounts();updateAll();showToast('Đã xóa');cloudPushAll();}
 
 /* ── DASHBOARD ── */
 function updateAll(){
