@@ -1086,18 +1086,17 @@ function getSavings(){
   const allThu=txData.filter(t=>t.type==='thu').reduce((s,t)=>s+t.amount,0);
   const allChi=txData.filter(t=>t.type==='chi').reduce((s,t)=>s+t.amount,0);
   const totalAssets=opening+allThu-allChi+invPnL+accTotal;
-  // Chi tiêu THƯỜNG tháng này (chỉ loại normal mới tính vào ngân sách)
+  // Chi thường tháng này
   const monthChiNormal=txData.filter(t=>{
     if(t.type!=='chi')return false;
     if(t.budgetType==='extra')return false;
     const d=new Date(t.date);
     return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
   }).reduce((s,t)=>s+t.amount,0);
-  // Chi trong ngân sách → tiết kiệm KHÔNG đổi
-  // Chi vượt ngân sách → tiết kiệm giảm theo phần vượt
-  // Chi ngoài → đã trừ thẳng vào totalAssets rồi
-  const spentFromBudget=Math.min(monthChiNormal,weekBudgetData.total);
-  return totalAssets+spentFromBudget-weekBudgetData.total;
+  // Tiết kiệm = Tổng tài sản - ngân sách tháng
+  // Khi chi thường → tổng giảm, ngân sách còn giảm
+  // Khi chi ngoài → tổng giảm, ngân sách không đổi
+  return totalAssets-weekBudgetData.total;
 }
 let installments=JSON.parse(localStorage.getItem('fin_installments')||'[]');
 init();
