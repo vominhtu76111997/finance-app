@@ -86,6 +86,8 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 .btn-full-red{border-color:var(--red);color:var(--red);background:var(--red-bg);}
 .btn-full-red:hover{background:rgba(216,90,48,.2);}
 .btn-full-blue{border-color:var(--blue);color:var(--blue);background:var(--blue-bg);}
+.btn-full-amber{border-color:#d97706;color:#d97706;background:rgba(217,119,6,.08);}
+.btn-full-amber:hover{background:rgba(217,119,6,.18);box-shadow:0 6px 20px rgba(217,119,6,.15);}
 .btn-full-blue:hover{background:rgba(55,138,221,.2);}
 /* INPUTS — focus glow */
 .field input,.field select{width:100%;background:var(--bg3);border:.5px solid var(--border2);border-radius:7px;color:var(--text);font-size:12px;font-family:inherit;padding:7px 10px;outline:none;transition:all .25s cubic-bezier(.22,1,.36,1);-webkit-appearance:none;}
@@ -299,13 +301,20 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 .tg-remaining-info strong{color:var(--text);font-weight:600;}
 .tg-remaining-info .highlight{color:#1d9e75;font-weight:700;}
 /* CHI TYPE TOGGLE */
-.chi-type-toggle{display:flex;gap:0;margin-bottom:8px;border-radius:8px;overflow:hidden;border:.5px solid var(--border2);background:var(--bg3);}
-.chi-type-btn{flex:1;padding:7px 0;text-align:center;font-size:11px;font-weight:500;font-family:inherit;cursor:pointer;border:none;background:transparent;color:var(--text3);transition:all .25s cubic-bezier(.22,1,.36,1);position:relative;}
-.chi-type-btn:first-child{border-right:.5px solid var(--border2);}
-.chi-type-btn.active{color:var(--text);font-weight:600;}
-.chi-type-btn[data-val="normal"].active{background:var(--red-bg);color:var(--red);}
-.chi-type-btn[data-val="extra"].active{background:var(--amber-bg);color:var(--amber);}
-.chi-type-btn:hover:not(.active){color:var(--text2);}
+.chi-type-toggle{display:flex;gap:0;margin-bottom:10px;border-radius:10px;overflow:hidden;border:1.5px solid var(--border2);background:var(--bg3);padding:3px;}
+.chi-type-btn{flex:1;padding:10px 0;text-align:center;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:none;background:transparent;color:var(--text3);transition:all .25s cubic-bezier(.22,1,.36,1);position:relative;border-radius:8px;}
+.chi-type-btn.active{color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+.chi-type-btn[data-val="normal"].active{background:var(--red);color:#fff;}
+.chi-type-btn[data-val="extra"].active{background:#d97706;color:#fff;}
+.chi-type-btn:hover:not(.active){color:var(--text2);background:var(--bg2);}
+/* Chi form card border changes based on mode */
+.chi-form-card{transition:border-color .3s,box-shadow .3s;}
+.chi-form-card.mode-normal{border-color:rgba(220,80,80,.25);}
+.chi-form-card.mode-extra{border-color:rgba(217,119,6,.4);box-shadow:0 0 0 1px rgba(217,119,6,.1),0 4px 16px rgba(217,119,6,.06);}
+/* Chi type hint - more prominent */
+#chiTypeHint{font-size:11px;padding:6px 10px;border-radius:6px;margin-bottom:10px;line-height:1.5;transition:all .3s;}
+.chi-hint-normal{background:var(--red-bg);color:var(--red);}
+.chi-hint-extra{background:rgba(217,119,6,.1);color:#d97706;font-weight:500;}
 .badge-extra{font-size:8px;padding:1px 5px;border-radius:10px;background:var(--amber-bg);color:var(--amber);font-weight:600;margin-left:4px;vertical-align:middle;letter-spacing:.3px;}
 .badge-normal{font-size:8px;padding:1px 5px;border-radius:10px;background:var(--green-bg);color:var(--green);font-weight:600;margin-left:4px;vertical-align:middle;letter-spacing:.3px;display:none;}
 .week-budget-result{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:8px;}
@@ -384,18 +393,18 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
       <div class="field"><label>Số tiền (nhập 50 = 50,000₫)</label><div class="smart-input-wrap"><input type="number" id="thuAmt" placeholder="0" step="any" min="0" oninput="smartPreview(this,'thuPreview')" onkeydown="if(event.key==='Enter')addTx('thu')"/><span class="smart-preview" id="thuPreview"></span></div></div>
       <button class="btn-full btn-full-green" onclick="addTx('thu')">+ Thêm thu nhập</button>
     </div>
-    <div class="card">
-      <div class="card-title red">↘ Thêm khoản chi</div>
+    <div class="card chi-form-card mode-normal" id="chiFormCard">
+      <div class="card-title red" id="chiFormTitle">↘ Thêm khoản chi</div>
       <div class="chi-type-toggle">
         <button class="chi-type-btn active" data-val="normal" onclick="setChiType('normal')">💳 Chi thường</button>
         <button class="chi-type-btn" data-val="extra" onclick="setChiType('extra')">⚡ Chi ngoài</button>
       </div>
-      <div id="chiTypeHint" style="font-size:10px;color:var(--text3);margin-bottom:8px;line-height:1.5;">Trừ vào ngân sách tuần · lố mới trừ tiết kiệm</div>
+      <div id="chiTypeHint" class="chi-hint-normal">Trừ vào ngân sách tuần · lố mới trừ tiết kiệm</div>
       <div class="quick-row" id="quickChiRow"></div>
       <div class="field"><label>Danh mục chi</label><select id="chiCat"></select></div>
       <div class="field"><label>Mô tả</label><input type="text" id="chiNote" placeholder="Chi tiết..."/></div>
       <div class="field"><label>Số tiền (nhập 50 = 50,000₫)</label><div class="smart-input-wrap"><input type="number" id="chiAmt" placeholder="0" step="any" min="0" oninput="smartPreview(this,'chiPreview')" onkeydown="if(event.key==='Enter')addTx('chi')"/><span class="smart-preview" id="chiPreview"></span></div></div>
-      <button class="btn-full btn-full-red" onclick="addTx('chi')">− Thêm chi tiêu</button>
+      <button class="btn-full btn-full-red" id="chiSubmitBtn" onclick="addTx('chi')">− Thêm chi tiêu</button>
     </div>
   </div>
   <div class="bottom-row">
@@ -697,7 +706,22 @@ function setChiType(type){
   chiType=type;
   document.querySelectorAll('.chi-type-btn').forEach(b=>b.classList.toggle('active',b.dataset.val===type));
   const hint=$('chiTypeHint');
-  if(hint) hint.textContent=type==='normal'?'Trừ vào ngân sách tuần · lố mới trừ tiết kiệm':'Trừ thẳng tổng tài sản · không qua ngân sách tuần';
+  const card=$('chiFormCard');
+  const title=$('chiFormTitle');
+  if(hint){
+    hint.textContent=type==='normal'?'Trừ vào ngân sách tuần · lố mới trừ tiết kiệm':'⚠ Trừ thẳng tổng tài sản · không qua ngân sách tuần';
+    hint.className=type==='normal'?'chi-hint-normal':'chi-hint-extra';
+  }
+  if(card){
+    card.classList.remove('mode-normal','mode-extra');
+    card.classList.add('mode-'+type);
+  }
+  if(title) title.textContent=type==='normal'?'↘ Thêm khoản chi':'⚡ Thêm khoản chi ngoài';
+  const btn=$('chiSubmitBtn');
+  if(btn){
+    btn.textContent=type==='normal'?'− Thêm chi tiêu':'⚡ Thêm chi ngoài';
+    btn.className=type==='normal'?'btn-full btn-full-red':'btn-full btn-full-amber';
+  }
   playClick();
 }
 
@@ -711,7 +735,6 @@ function addTx(type){
   if(type==='chi') tx.budgetType=chiType;
   txData.push(tx);save();$(type+'Note').value='';$(type+'Amt').value='';$(type+'Preview')&&($(type+'Preview').textContent='');
   updateAll();playSuccess();showToast(type==='thu'?'Thu: +'+fmt(amt):(chiType==='extra'?'Chi ngoài: -':'Chi: -')+fmt(amt),type==='thu');cloudAddTx(tx);
-  if(type==='chi') setChiType('normal'); // reset về mặc định
 }
 function deleteTx(id){txData=txData.filter(t=>t.id!==id);save();updateAll();if($('page-history').classList.contains('active'))renderHistory();playClick();cloudDeleteTx(id);}
 function clearMonth(){txData=txData.filter(t=>{const d=new Date(t.date);return!(d.getMonth()===viewMonth&&d.getFullYear()===viewYear);});save();updateAll();}
