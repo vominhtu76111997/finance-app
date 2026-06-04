@@ -1127,6 +1127,7 @@ function saveWeekBudget(){
   const now=new Date();
   weekBudgetData={month:now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'),total:total};
   localStorage.setItem('fin_week_budget',JSON.stringify(weekBudgetData));
+  _userDirty=true;
   // Sync lên cloud
   if(syncUrl&&syncConnected){
     const form=new FormData();form.append('action','saveSettings');
@@ -1141,6 +1142,7 @@ function resetWeekBudget(){
   if(!confirm('Xóa ngân sách tháng này?'))return;
   weekBudgetData=null;
   localStorage.removeItem('fin_week_budget');
+  _userDirty=true;
   $('weekBudgetInput').value='';
   $('weekBudgetResult').innerHTML='';
   $('weekBudgetSetup').style.display='';
