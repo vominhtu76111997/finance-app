@@ -1057,7 +1057,8 @@ function cloudDisconnect(){syncUrl='';syncConnected=false;localStorage.removeIte
 async function cloudPull(isAuto){if(!syncUrl){showToast('Chưa kết nối',false);return;}if(isAuto&&_userDirty){updateSyncUI(true,'Skip auto-pull (có thay đổi)');return;}if(!isAuto)showToast('Pull...');updateSyncUI(true,'Pull...');try{const r=await jsonp(syncUrl+'?action=getAll');if(!r||!r.ok){if(!isAuto)showToast('Pull lỗi',false);return;}if(isAuto&&_userDirty){updateSyncUI(true,'Skip (có thay đổi mới)');return;}let merged=false;if(r.transactions){const localMap={};txData.forEach(t=>{if(t.budgetType)localMap[t.id]=t.budgetType;});txData=r.transactions;txData.forEach(t=>{if(!t.budgetType&&localMap[t.id]){t.budgetType=localMap[t.id];merged=true;}});localStorage.setItem('fin_tx',JSON.stringify(txData));}if(r.investments){investments=r.investments;saveInv();}if(r.catsChi){catsChi=r.catsChi;localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));}if(r.catsThu){catsThu=r.catsThu;localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));}if(r.budgets){budgets=r.budgets;localStorage.setItem('fin_budgets',JSON.stringify(budgets));}if(r.opening!==undefined){opening=r.opening;localStorage.setItem('fin_opening',opening);$('openingBal').value=opening||'';}if(r.weekBudget&&r.weekBudget!=='null'){weekBudgetData=r.weekBudget;localStorage.setItem('fin_week_budget',JSON.stringify(weekBudgetData));}if(r.installments){installments=r.installments;localStorage.setItem('fin_installments',JSON.stringify(installments));}rebuildSelects();updateAll();showToast('Pull: '+txData.length+' GD');playSuccess();updateSyncUI(true,'Synced '+new Date().toLocaleTimeString('vi-VN'));if(merged){setTimeout(()=>cloudPushAll(),1000);}}catch(e){if(!isAuto)showToast('Pull: '+e.message,false);}}
 async function cloudPushAll(){if(!syncUrl){showToast('Chưa kết nối',false);return;}showToast('Push...');updateSyncUI(true,'Push...');try{
 const payload=JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,weekBudget:weekBudgetData,allTx:txData,allInv:investments,installments:installments});
-await fetch(syncUrl+'?action=pushAll',{method:'POST',headers:{'Content-Type':'text/plain'},body:payload,mode:'no-cors',redirect:'follow'});
+const form=new FormData();form.append('action','pushAll');form.append('payload',payload);
+await fetch(syncUrl,{method:'POST',body:form,mode:'no-cors',redirect:'follow'});
 showToast('Push OK!');playSuccess();updateSyncUI(true,'Pushed '+new Date().toLocaleTimeString('vi-VN'));clearDirty();
 }catch(e){showToast('Push: '+e.message,false);}}
 async function cloudAddTx(tx){if(!syncUrl||!syncConnected)return;try{const r=await cloudSend('addTx',tx);if(r&&r.ok)updateSyncUI(true,'↑ '+new Date().toLocaleTimeString('vi-VN'));else updateSyncUI(true,'⚠ Lỗi');}catch(e){updateSyncUI(true,'⚠ Lỗi');}}
@@ -1065,7 +1066,7 @@ function cloudDeleteTx(id){if(!syncUrl||!syncConnected)return;jsonp(syncUrl+'?ac
 function cloudAddInv(inv){if(!syncUrl||!syncConnected)return;cloudSend('addInvestment',inv).catch(()=>{});}
 function cloudDeleteInv(id){if(!syncUrl||!syncConnected)return;jsonp(syncUrl+'?action=deleteInvestment&id='+id).catch(()=>{});}
 function cloudUpdateInv(data){if(!syncUrl||!syncConnected)return;cloudSend('updateInvestment',data).catch(()=>{});}
-function cloudSaveSettings(){if(!syncUrl||!syncConnected)return;const payload=JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,weekBudget:weekBudgetData,installments:installments});fetch(syncUrl+'?action=saveSettings',{method:'POST',headers:{'Content-Type':'text/plain'},body:payload,mode:'no-cors'}).catch(()=>{});}
+function cloudSaveSettings(){if(!syncUrl||!syncConnected)return;const form=new FormData();form.append('action','saveSettings');form.append('payload',JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,weekBudget:weekBudgetData,installments:installments}));fetch(syncUrl,{method:'POST',body:form,mode:'no-cors'}).catch(()=>{});}
 function updateSyncUI(connected,label){const dot=$('syncStatus');const lbl=$('syncLabel');if(dot)dot.style.background=connected?'var(--green)':'var(--text3)';if(lbl)lbl.textContent=label;}
 
 /* ── INIT ── */
@@ -1105,17 +1106,21 @@ function getSavings(){
   const allThu=txData.filter(t=>t.type==='thu').reduce((s,t)=>s+t.amount,0);
   const allChi=txData.filter(t=>t.type==='chi').reduce((s,t)=>s+t.amount,0);
   const totalAssets=opening+allThu-allChi+invPnL+accTotal;
-  // Chi thường tháng này
-  const monthChiNormal=txData.filter(t=>{
-    if(t.type!=='chi')return false;
-    if(t.budgetType==='extra')return false;
+  // Chỉ tính chi thường SAU khi lập ngân sách
+  const budgetStart=weekBudgetData.createdAt?new Date(weekBudgetData.createdAt).getTime():0;
+  const normalChiAfterBudget=txData.filter(t=>{
+    if(t.type!=='chi'||t.budgetType==='extra')return false;
     const d=new Date(t.date);
-    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+    if(d.getMonth()!==now.getMonth()||d.getFullYear()!==now.getFullYear())return false;
+    return budgetStart===0||t.id>=budgetStart;
   }).reduce((s,t)=>s+t.amount,0);
-  // Tiết kiệm = Tổng tài sản - ngân sách tháng
-  // Khi chi thường → tổng giảm, ngân sách còn giảm
-  // Khi chi ngoài → tổng giảm, ngân sách không đổi
-  return totalAssets-weekBudgetData.total;
+  // Tiết kiệm:
+  // - Ban đầu = tổng tài sản - ngân sách
+  // - Chi thường (trong ngân sách): KHÔNG ĐỔI
+  // - Chi thường vượt ngân sách: phần vượt GIẢM tiết kiệm
+  // - Chi ngoài: GIẢM trực tiếp
+  const budgetUsed=Math.min(normalChiAfterBudget,weekBudgetData.total);
+  return totalAssets+budgetUsed-weekBudgetData.total;
 }
 let installments=JSON.parse(localStorage.getItem('fin_installments')||'[]');
 init();
@@ -1143,7 +1148,7 @@ function saveWeekBudget(){
   if(!raw){showToast('Nhập số tiền!',false);return;}
   const total=smartAmount(raw);
   const now=new Date();
-  weekBudgetData={month:now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'),total:total};
+  weekBudgetData={month:now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'),total:total,createdAt:now.toISOString()};
   localStorage.setItem('fin_week_budget',JSON.stringify(weekBudgetData));
   setDirty();
   // Sync lên cloud
