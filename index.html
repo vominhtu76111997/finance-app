@@ -1138,7 +1138,8 @@ function getWeekBounds(year,month){
   for(let d=1;d<=lastDay;d++){
     const dow=new Date(year,month,d).getDay();
     if(dow===0||d===lastDay){
-      weeks.push({start:ws,end:d});
+      const numDays=d-ws+1;
+      weeks.push({start:ws,end:d,numDays});
       ws=d+1;
     }
   }
@@ -1189,14 +1190,12 @@ function calcWeekBudget(){
   const now=new Date();
   const curMonthKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
 
-  // Nếu chưa có ngân sách hoặc khác tháng → hiện form nhập
   if(!weekBudgetData||weekBudgetData.month!==curMonthKey){
     if(setup)setup.style.display='';
     res.innerHTML='<div style="font-size:11px;color:var(--text3);padding:8px 0;">Nhập ngân sách tháng để bắt đầu theo dõi chi tiêu theo tuần.</div>';
     return;
   }
 
-  // Đã có ngân sách → ẩn form, hiện số
   if(setup)setup.style.display='none';
   if(input)input.value=Math.round(weekBudgetData.total/1000);
 
@@ -1204,20 +1203,23 @@ function calcWeekBudget(){
   const year=now.getFullYear();
   const month=now.getMonth();
   const todayDate=now.getDate();
-  const lastDay=new Date(year,month+1,0).getDate();
-  const weeks=getWeekBounds(year,month);
-  // Chia ngân sách theo số ngày (tuần 2 ngày ≠ tuần 7 ngày)
-  const totalDays=lastDay;
-  const perDay=total/totalDays;
+  const allWeeks=getWeekBounds(year,month);
 
-  // Lấy chi tiêu THƯỜNG tháng này (chi ngoài không tính vào ngân sách tuần)
+  // Lọc bỏ tuần <4 ngày
+  const weeks=allWeeks.filter(w=>w.numDays>=4);
+
+  // Chia đều ngân sách cho các tuần hợp lệ
+  const perWeek=weeks.length?Math.round(total/weeks.length):total;
+  const perDay=weeks.length?Math.round(total/(weeks.length*7)):0;
+
+  // Chi thường tháng này
   const monthChi=txData.filter(t=>{
     if(t.type!=='chi')return false;
     if(t.budgetType==='extra')return false;
     const d=new Date(t.date);
     return d.getMonth()===month&&d.getFullYear()===year;
   });
-  // Chi ngoài ngân sách (để hiển thị riêng)
+  // Chi ngoài
   const monthChiExtra=txData.filter(t=>{
     if(t.type!=='chi')return false;
     if(t.budgetType!=='extra')return false;
@@ -1230,33 +1232,37 @@ function calcWeekBudget(){
   for(let i=0;i<weeks.length;i++){
     if(todayDate>=weeks[i].start&&todayDate<=weeks[i].end){currentIdx=i;break;}
   }
+  // Nếu hôm nay nằm trong tuần bị loại (<4 ngày) → gộp vào tuần gần nhất
+  let inValidWeek=false;
+  for(let i=0;i<weeks.length;i++){
+    if(todayDate>=weeks[i].start&&todayDate<=weeks[i].end){inValidWeek=true;currentIdx=i;break;}
+  }
+  if(!inValidWeek) currentIdx=weeks.length-1;
 
-  // Tính chi tiêu & rollover cho từng tuần
-  let rollover=0;
+  // Tính chi tiêu cho từng tuần
   const details=[];
   for(let i=0;i<weeks.length;i++){
     const w=weeks[i];
-    const numDays=w.end-w.start+1;
-    const baseForWeek=Math.round(perDay*numDays);
+    // Tuần cuối: cộng thêm ngày từ tuần bị loại
+    let actualStart=w.start,actualEnd=w.end;
+    if(i===weeks.length-1){
+      // Gộp ngày còn lại cuối tháng (nếu có tuần <4 ngày bị loại)
+      const lastDay=new Date(year,month+1,0).getDate();
+      if(actualEnd<lastDay) actualEnd=lastDay;
+    }
+
     const spent=monthChi.filter(t=>{
       const d=new Date(t.date).getDate();
-      return d>=w.start&&d<=w.end;
+      return d>=actualStart&&d<=actualEnd;
     }).reduce((s,t)=>s+t.amount,0);
 
-    const budget=baseForWeek+rollover;
+    const budget=perWeek;
     const remaining=budget-spent;
     const isPast=i<currentIdx;
     const isCurrent=i===currentIdx;
     const isFuture=i>currentIdx;
 
-    details.push({...w,numDays,baseForWeek,budget,spent,remaining,isPast,isCurrent,isFuture,idx:i});
-
-    // Rollover: tuần đã qua → dư/thiếu chuyển sang tuần tiếp theo
-    if(isPast){
-      rollover=remaining; // dương = dư, âm = thiếu
-    }else{
-      rollover=0;
-    }
+    details.push({start:actualStart,end:actualEnd,numDays:actualEnd-actualStart+1,budget,spent,remaining,isPast,isCurrent,isFuture,idx:i});
   }
 
   const totalSpent=monthChi.reduce((s,t)=>s+t.amount,0);
@@ -1265,8 +1271,6 @@ function calcWeekBudget(){
 
   // ── Render ──
   let html='';
-
-  // Tổng quan
   const remColor=totalRemaining>=0?'#1d9e75':'#d85a30';
   const curColor=cur.remaining>=0?'#1d9e75':'#d85a30';
   html+=`<div class="week-budget-result" style="margin-bottom:12px;">
@@ -1290,7 +1294,7 @@ function calcWeekBudget(){
 
   // Timeline tuần
   html+=`<div style="font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;">
-    Chi tiết ${weeks.length} tuần · Ngân sách: ${fmt(total)} · ${fmt(Math.round(perDay))}/ngày
+    Chi tiết ${weeks.length} tuần · Ngân sách: ${fmt(total)} · ${fmt(perWeek)}/tuần
   </div>`;
   html+='<div class="week-timeline">';
   for(const w of details){
@@ -1299,14 +1303,13 @@ function calcWeekBudget(){
     if(w.isCurrent)cls+=' this-week';
     if(w.isPast)cls+=' past-week';
     const remC=w.remaining>=0?'#1d9e75':'#d85a30';
-    const budgetNote=w.budget!==w.baseForWeek?(w.budget>w.baseForWeek?' (+dư)':' (−lố)'):'';
     html+=`<div class="${cls}">
       <div style="font-size:8px;opacity:.7;margin-bottom:2px;">T${w.idx+1}: ${w.start}/${m}–${w.end}/${m} (${w.numDays} ngày)</div>
       <div style="font-size:12px;font-weight:700;color:${remC};">${w.remaining>=0?'':'−'}${fmt(Math.abs(w.remaining))}</div>
       <div style="font-size:8px;margin-top:2px;color:var(--text3);">
-        ${w.isPast?'Đã dùng':w.isCurrent?'Còn lại':'Dự kiến'} · ${fmt(w.baseForWeek)}${budgetNote}
+        ${w.isPast?'Đã dùng · '+fmt(w.spent):w.isCurrent?'Còn lại · '+fmt(w.budget):'Dự kiến · '+fmt(w.budget)}
       </div>
-      ${w.spent>0?`<div style="font-size:8px;color:#d85a30;">Chi: ${fmt(w.spent)}</div>`:''}
+      ${w.isCurrent&&w.spent>0?`<div style="font-size:8px;color:#d85a30;">Chi: ${fmt(w.spent)}</div>`:''}
     </div>`;
   }
   html+='</div>';
