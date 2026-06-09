@@ -305,6 +305,31 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 .week-chip.past-week{opacity:.4;text-decoration:line-through;}
 .week-chip-lbl{font-size:8px;color:var(--text3);margin-top:2px;font-weight:400;}
 
+
+/* ═══ LIQUID GLASS ═══ */
+.card{background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.01)) ,var(--bg2);backdrop-filter:blur(28px) saturate(1.4);-webkit-backdrop-filter:blur(28px) saturate(1.4);border:.5px solid rgba(255,255,255,.08);}
+[data-theme="light"] .card{background:linear-gradient(135deg,rgba(255,255,255,.7),rgba(255,255,255,.4));border-color:rgba(0,0,0,.06);}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);pointer-events:none;}
+.metric{background:linear-gradient(135deg,rgba(255,255,255,.05),rgba(255,255,255,.01)),var(--bg2);backdrop-filter:blur(24px) saturate(1.3);-webkit-backdrop-filter:blur(24px) saturate(1.3);border:.5px solid rgba(255,255,255,.08);}
+[data-theme="light"] .metric{background:linear-gradient(135deg,rgba(255,255,255,.75),rgba(255,255,255,.45));border-color:rgba(0,0,0,.06);}
+.metric::after{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);pointer-events:none;}
+/* Sidebar glass */
+.sidebar{backdrop-filter:blur(32px) saturate(1.5);-webkit-backdrop-filter:blur(32px) saturate(1.5);}
+/* Buttons liquid */
+.btn-full{backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+/* Inputs glass */
+.field input,.field select{backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);background:rgba(128,128,128,.04);}
+.field input:focus,.field select:focus{background:rgba(128,128,128,.06);}
+/* Week chips glass */
+.week-chip{backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);}
+/* Toast glass */
+.toast{backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4);}
+/* Smooth scrolling */
+html{scroll-behavior:smooth;}
+.tx-scroll{scroll-behavior:smooth;}
+/* GPU acceleration for smooth rendering */
+.card,.metric,.page{transform:translateZ(0);will-change:auto;}
+
 </style>
 </head>
 <body data-theme="dark">
@@ -607,8 +632,8 @@ const save=()=>{localStorage.setItem('fin_tx',JSON.stringify(txData));setDirty()
 const saveCatsChi=()=>{localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));cloudSaveSettings();};
 const saveCatsThu=()=>{localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));cloudSaveSettings();};
 const saveBudgets=()=>{localStorage.setItem('fin_budgets',JSON.stringify(budgets));cloudSaveSettings();};
-const saveInv=()=>localStorage.setItem('fin_inv',JSON.stringify(investments));
-const saveAccounts=()=>localStorage.setItem('fin_accounts',JSON.stringify(accounts));
+const saveInv=()=>{localStorage.setItem('fin_inv',JSON.stringify(investments));setDirty();};
+const saveAccounts=()=>{localStorage.setItem('fin_accounts',JSON.stringify(accounts));setDirty();cloudSaveSettings();};
 function saveOpening(){opening=parseFloat($('openingBal').value)||0;localStorage.setItem('fin_opening',opening);cloudSaveSettings();}
 function toggleSound(){soundOn=!soundOn;localStorage.setItem('fin_sound',soundOn);$('soundToggle').className='toggle'+(soundOn?' on':'');if(soundOn)playClick();}
 function setTheme(t){theme=t;document.body.setAttribute('data-theme',t);localStorage.setItem('fin_theme',t);renderThemeRow();}
@@ -1042,7 +1067,7 @@ function renderSettings(){
 /* ── EXPORT/IMPORT ── */
 function exportCSV(){if(!txData.length){showToast('Không có',false);return;}const rows=[['Ngày','Giờ','Loại','Danh mục','Mô tả','Số tiền']];txData.forEach(t=>{const d=new Date(t.date);rows.push([d.toLocaleDateString('vi-VN'),d.toLocaleTimeString('vi-VN'),t.type==='thu'?'Thu':'Chi',t.cat,t.note,t.amount]);});const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download='finance.csv';a.click();showToast('Xuất CSV');}
 function exportJSON(){const d={txData,catsChi,catsThu,budgets,investments,accounts,opening,exportedAt:new Date().toISOString()};const a=document.createElement('a');a.href='data:application/json,'+encodeURIComponent(JSON.stringify(d,null,2));a.download='finance_backup.json';a.click();showToast('Backup xong');}
-function importJSON(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(!confirm('Ghi đè?'))return;if(d.txData){txData=d.txData;save();}if(d.catsChi){catsChi=d.catsChi;saveCatsChi();}if(d.catsThu){catsThu=d.catsThu;saveCatsThu();}if(d.budgets){budgets=d.budgets;saveBudgets();}if(d.investments){investments=d.investments;saveInv();}if(d.accounts){accounts=d.accounts;saveAccounts();}if(d.opening!==undefined){opening=d.opening;localStorage.setItem('fin_opening',opening);$('openingBal').value=opening||'';}rebuildSelects();updateAll();showToast('Import: '+txData.length+' GD');}catch(err){showToast('File lỗi',false);}};r.readAsText(file);e.target.value='';}
+function importJSON(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(!confirm('Ghi đè?'))return;if(d.txData){txData=d.txData;save();}if(d.catsChi){catsChi=d.catsChi;saveCatsChi();}if(d.catsThu){catsThu=d.catsThu;saveCatsThu();}if(d.budgets){budgets=d.budgets;saveBudgets();}if(d.investments){investments=d.investments;saveInv();}if(d.accounts){accounts=d.accounts;saveAccounts();}if(d.opening!==undefined){opening=d.opening;localStorage.setItem('fin_opening',opening);$('openingBal').value=opening||'';}rebuildSelects();updateAll();showToast('Import: '+txData.length+' GD');cloudPushAll();}catch(err){showToast('File lỗi',false);}};r.readAsText(file);e.target.value='';}
 
 
 /* ── CLOUD SYNC (Pure JSONP) ── */
@@ -1055,10 +1080,10 @@ function jsonp(url,timeout=20000){return new Promise((resolve,reject)=>{const cb
 function cloudSend(action,data){return jsonp(syncUrl+'?action='+action+'&payload='+encodeURIComponent(JSON.stringify(data)));}
 async function cloudConnect(){syncUrl=$('syncUrl').value.trim().replace(/\/+$/,'');if(!syncUrl){showToast('Nhập URL',false);return;}localStorage.setItem('fin_sync_url',syncUrl);showToast('Đang kết nối...');updateSyncUI(false,'Đang kết nối...');try{const r=await jsonp(syncUrl+'?action=ping');if(r&&r.ok){syncConnected=true;updateSyncUI(true,'Đã kết nối ✓');showToast('OK! Auto-pushing...');playSuccess();await cloudPushAll();}else{syncConnected=false;updateSyncUI(false,'Lỗi');showToast('Thất bại',false);}}catch(e){syncConnected=false;updateSyncUI(false,e.message);showToast(e.message,false);}}
 function cloudDisconnect(){syncUrl='';syncConnected=false;localStorage.removeItem('fin_sync_url');$('syncUrl').value='';updateSyncUI(false,'Chưa kết nối');showToast('Đã ngắt');}
-async function cloudPull(isAuto){if(!syncUrl){showToast('Chưa kết nối',false);return;}if(isAuto&&_userDirty){updateSyncUI(true,'Skip auto-pull (có thay đổi)');return;}if(!isAuto)showToast('Pull...');updateSyncUI(true,'Pull...');try{const r=await jsonp(syncUrl+'?action=getAll');if(!r||!r.ok){if(!isAuto)showToast('Pull lỗi',false);return;}if(isAuto&&_userDirty){updateSyncUI(true,'Skip (có thay đổi mới)');return;}let merged=false;if(r.transactions){const localMap={};txData.forEach(t=>{if(t.budgetType)localMap[t.id]=t.budgetType;});const cloudBtMap=r.budgetTypeMap||{};txData=r.transactions;txData.forEach(t=>{if(!t.budgetType){if(cloudBtMap[t.id]){t.budgetType=cloudBtMap[t.id];merged=true;}else if(localMap[t.id]){t.budgetType=localMap[t.id];merged=true;}}});localStorage.setItem('fin_tx',JSON.stringify(txData));}if(r.investments){investments=r.investments;saveInv();}if(r.catsChi){catsChi=r.catsChi;localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));}if(r.catsThu){catsThu=r.catsThu;localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));}if(r.budgets){budgets=r.budgets;localStorage.setItem('fin_budgets',JSON.stringify(budgets));}if(r.opening!==undefined){opening=r.opening;localStorage.setItem('fin_opening',opening);$('openingBal').value=opening||'';}if(r.weekBudget&&r.weekBudget!=='null'){weekBudgetData=r.weekBudget;localStorage.setItem('fin_week_budget',JSON.stringify(weekBudgetData));}if(r.installments){installments=r.installments;localStorage.setItem('fin_installments',JSON.stringify(installments));}rebuildSelects();updateAll();showToast('Pull: '+txData.length+' GD');playSuccess();updateSyncUI(true,'Synced '+new Date().toLocaleTimeString('vi-VN'));if(merged){setTimeout(()=>cloudPushAll(),1000);}}catch(e){if(!isAuto)showToast('Pull: '+e.message,false);}}
+async function cloudPull(isAuto){if(!syncUrl){showToast('Chưa kết nối',false);return;}if(isAuto&&_userDirty){updateSyncUI(true,'Skip auto-pull (có thay đổi)');return;}if(!isAuto)showToast('Pull...');updateSyncUI(true,'Pull...');try{const r=await jsonp(syncUrl+'?action=getAll');if(!r||!r.ok){if(!isAuto)showToast('Pull lỗi',false);return;}if(isAuto&&_userDirty){updateSyncUI(true,'Skip (có thay đổi mới)');return;}let merged=false;if(r.transactions){const localMap={};txData.forEach(t=>{if(t.budgetType)localMap[t.id]=t.budgetType;});const cloudBtMap=r.budgetTypeMap||{};txData=r.transactions;txData.forEach(t=>{if(!t.budgetType){if(cloudBtMap[t.id]){t.budgetType=cloudBtMap[t.id];merged=true;}else if(localMap[t.id]){t.budgetType=localMap[t.id];merged=true;}}});localStorage.setItem('fin_tx',JSON.stringify(txData));}if(r.investments){investments=r.investments;saveInv();}if(r.catsChi){catsChi=r.catsChi;localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));}if(r.catsThu){catsThu=r.catsThu;localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));}if(r.budgets){budgets=r.budgets;localStorage.setItem('fin_budgets',JSON.stringify(budgets));}if(r.opening!==undefined){opening=r.opening;localStorage.setItem('fin_opening',opening);$('openingBal').value=opening||'';}if(r.weekBudget!==undefined){if(r.weekBudget&&r.weekBudget!=='null'&&r.weekBudget!==null){weekBudgetData=r.weekBudget;localStorage.setItem('fin_week_budget',JSON.stringify(weekBudgetData));}else{weekBudgetData=null;localStorage.removeItem('fin_week_budget');}}if(r.installments){installments=r.installments;localStorage.setItem('fin_installments',JSON.stringify(installments));}if(r.accounts){accounts=r.accounts;localStorage.setItem('fin_accounts',JSON.stringify(accounts));}rebuildSelects();updateAll();showToast('Pull: '+txData.length+' GD');playSuccess();updateSyncUI(true,'Synced '+new Date().toLocaleTimeString('vi-VN'));if(merged){setTimeout(()=>cloudPushAll(),1000);}}catch(e){if(!isAuto)showToast('Pull: '+e.message,false);}}
 async function cloudPushAll(){if(!syncUrl){showToast('Chưa kết nối',false);return;}showToast('Push...');updateSyncUI(true,'Push...');try{
 const btMap={};txData.forEach(t=>{if(t.budgetType)btMap[t.id]=t.budgetType;});
-const payload=JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,weekBudget:weekBudgetData,allTx:txData,allInv:investments,installments:installments,budgetTypeMap:btMap});
+const payload=JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,weekBudget:weekBudgetData,allTx:txData,allInv:investments,installments:installments,budgetTypeMap:btMap,accounts:accounts});
 const form=new FormData();form.append('action','pushAll');form.append('payload',payload);
 await fetch(syncUrl,{method:'POST',body:form,mode:'no-cors',redirect:'follow'});
 showToast('Push OK!');playSuccess();updateSyncUI(true,'Pushed '+new Date().toLocaleTimeString('vi-VN'));clearDirty();
@@ -1068,7 +1093,7 @@ function cloudDeleteTx(id){if(!syncUrl||!syncConnected)return;jsonp(syncUrl+'?ac
 function cloudAddInv(inv){if(!syncUrl||!syncConnected)return;cloudSend('addInvestment',inv).catch(()=>{});}
 function cloudDeleteInv(id){if(!syncUrl||!syncConnected)return;jsonp(syncUrl+'?action=deleteInvestment&id='+id).catch(()=>{});}
 function cloudUpdateInv(data){if(!syncUrl||!syncConnected)return;cloudSend('updateInvestment',data).catch(()=>{});}
-function cloudSaveSettings(){if(!syncUrl||!syncConnected)return;const btMap={};txData.forEach(t=>{if(t.budgetType)btMap[t.id]=t.budgetType;});const form=new FormData();form.append('action','saveSettings');form.append('payload',JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,weekBudget:weekBudgetData,installments:installments,budgetTypeMap:btMap}));fetch(syncUrl,{method:'POST',body:form,mode:'no-cors'}).catch(()=>{});}
+function cloudSaveSettings(){if(!syncUrl||!syncConnected)return;const btMap={};txData.forEach(t=>{if(t.budgetType)btMap[t.id]=t.budgetType;});const form=new FormData();form.append('action','saveSettings');form.append('payload',JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,weekBudget:weekBudgetData,installments:installments,budgetTypeMap:btMap,accounts:accounts}));fetch(syncUrl,{method:'POST',body:form,mode:'no-cors'}).catch(()=>{});}
 function updateSyncUI(connected,label){const dot=$('syncStatus');const lbl=$('syncLabel');if(dot)dot.style.background=connected?'var(--green)':'var(--text3)';if(lbl)lbl.textContent=label;}
 
 /* ── INIT ── */
@@ -1154,12 +1179,7 @@ function saveWeekBudget(){
   weekBudgetData={month:now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'),total:total,createdAt:now.toISOString()};
   localStorage.setItem('fin_week_budget',JSON.stringify(weekBudgetData));
   setDirty();
-  // Sync lên cloud
-  if(syncUrl&&syncConnected){
-    const form=new FormData();form.append('action','saveSettings');
-    form.append('payload',JSON.stringify({weekBudget:weekBudgetData}));
-    fetch(syncUrl,{method:'POST',body:form,mode:'no-cors'}).catch(()=>{});
-  }
+  cloudSaveSettings();
   showToast('Đã lưu ngân sách tháng!');
   calcWeekBudget();updateAll();
 }
@@ -1172,12 +1192,7 @@ function resetWeekBudget(){
   $('weekBudgetInput').value='';
   $('weekBudgetResult').innerHTML='';
   $('weekBudgetSetup').style.display='';
-  // Xóa trên cloud
-  if(syncUrl&&syncConnected){
-    const form=new FormData();form.append('action','saveSettings');
-    form.append('payload',JSON.stringify({weekBudget:'null'}));
-    fetch(syncUrl,{method:'POST',body:form,mode:'no-cors'}).catch(()=>{});
-  }
+  cloudSaveSettings();
   updateAll();
 }
 
