@@ -330,6 +330,30 @@ html{scroll-behavior:smooth;}
 /* GPU acceleration for smooth rendering */
 .card,.metric,.page{transform:translateZ(0);will-change:auto;}
 
+
+/* ── CALCULATOR POPUP ── */
+.calc-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s ease;}
+.calc-overlay.show{opacity:1;pointer-events:auto;}
+.calc-box{width:300px;max-width:calc(100vw - 32px);background:var(--bg2);backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4);border:.5px solid var(--border2);border-radius:18px;padding:16px;box-shadow:0 24px 80px rgba(0,0,0,.45);transform:translateY(16px) scale(.95);transition:transform .3s cubic-bezier(.34,1.4,.64,1);}
+.calc-overlay.show .calc-box{transform:translateY(0) scale(1);}
+.calc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.calc-head .ttl{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.5px;}
+.calc-close{background:var(--bg3);border:.5px solid var(--border);border-radius:8px;color:var(--text2);font-size:12px;width:26px;height:26px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;}
+.calc-close:hover{color:var(--red);border-color:var(--red);}
+.calc-screen{background:var(--bg3);border:.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px;text-align:right;min-height:68px;display:flex;flex-direction:column;justify-content:center;gap:2px;overflow:hidden;}
+.calc-expr{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text2);min-height:17px;word-break:break-all;line-height:1.3;}
+.calc-out{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--text);min-height:30px;word-break:break-all;}
+.calc-out.preview{color:var(--accent);font-size:16px;font-weight:500;}
+.calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.calc-btn{height:48px;border-radius:12px;border:.5px solid var(--border);background:var(--bg3);color:var(--text);font-size:17px;font-family:'JetBrains Mono',monospace;font-weight:500;cursor:pointer;transition:all .15s;user-select:none;-webkit-tap-highlight-color:transparent;}
+.calc-btn:hover{background:var(--bg4);transform:translateY(-1px);}
+.calc-btn:active{transform:scale(.93);}
+.calc-btn.op{color:var(--accent);font-weight:700;}
+.calc-btn.fn{color:var(--amber);font-size:14px;}
+.calc-btn.eq{background:linear-gradient(135deg,#1D9E75,#5DCAA5);color:#fff;border:none;font-weight:700;grid-row:span 2;height:auto;}
+.calc-btn.eq:hover{filter:brightness(1.1);}
+.calc-hint{margin-top:10px;font-size:9px;color:var(--text3);text-align:center;letter-spacing:.3px;}
+@media(max-width:768px){.calc-box{width:280px;}.calc-btn{height:44px;}}
 </style>
 </head>
 <body data-theme="dark">
@@ -338,19 +362,19 @@ html{scroll-behavior:smooth;}
 <nav class="sidebar">
   <div class="logo"><div class="logo-title">💰 Finance</div><div class="logo-sub" id="sidebarDate"></div></div>
   <div class="nav-section">Menu</div>
-  <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')"><span class="nav-emoji" style="color:#4A9EF5">📊</span><span>Dashboard</span></div>
+  <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')"><span class="nav-emoji" style="color:#4A9EF5">📊</span><span>Thống kê</span></div>
   <div class="nav-item" data-page="accounts" onclick="showPage('accounts')"><span class="nav-emoji" style="color:#A87FE0">💳</span><span>Tài khoản</span></div>
   <div class="nav-item" data-page="invest" onclick="showPage('invest')"><span class="nav-emoji" style="color:#1D9E75">📈</span><span>Đầu tư</span></div>
   <div class="nav-item" data-page="tragop" onclick="showPage('tragop')"><span class="nav-emoji" style="color:#F0B429">💰</span><span>Trả Góp</span></div>
   <div class="nav-item" data-page="history" onclick="showPage('history')"><span class="nav-emoji" style="color:#3AAFA9">📋</span><span>Lịch sử</span></div>
-  <div class="nav-item" data-page="stats" onclick="showPage('stats')"><span class="nav-emoji" style="color:#6366F1">📉</span><span>Thống kê</span></div>
+  <div class="nav-item" data-page="stats" onclick="showPage('stats')"><span class="nav-emoji" style="color:#6366F1">📉</span><span>Biểu đồ</span></div>
   <div class="nav-item" data-page="budget" onclick="showPage('budget')"><span class="nav-emoji" style="color:#D85A30">🎯</span><span>Ngân sách</span></div>
   <div class="nav-item" data-page="settings" onclick="showPage('settings')"><span class="nav-emoji" style="color:#888780">⚙️</span><span>Cài đặt</span></div>
   <div class="sidebar-bottom"><div class="opening-mini"><label>Số dư đầu kỳ (₫)</label><input type="number" id="openingBal" placeholder="0" step="1000" oninput="saveOpening();updateAll()"/></div></div>
 </nav>
 
 <div class="mobile-nav">
-  <button class="mob-nav-btn active" data-page="dashboard" onclick="showPage('dashboard')"><span style="font-size:16px">📊</span>Home</button>
+  <button class="mob-nav-btn active" data-page="dashboard" onclick="showPage('dashboard')"><span style="font-size:16px">📊</span>T.Kê</button>
   <button class="mob-nav-btn" data-page="accounts" onclick="showPage('accounts')"><span style="font-size:16px">💳</span>TK</button>
   <button class="mob-nav-btn" data-page="invest" onclick="showPage('invest')"><span style="font-size:16px">📈</span>ĐT</button>
   <button class="mob-nav-btn" data-page="tragop" onclick="showPage('tragop')"><span style="font-size:16px">💰</span>Góp</button>
@@ -362,30 +386,33 @@ html{scroll-behavior:smooth;}
 
 <!-- DASHBOARD -->
 <div id="page-dashboard" class="page active">
-  <div class="topbar"><div class="topbar-left"><h1>📊 Dashboard</h1><div class="sub" id="dashDate"></div></div><div class="topbar-actions"><button class="btn" onclick="exportCSV()">↓ CSV</button></div></div>
+  <div class="topbar"><div class="topbar-left"><h1>📊 Thống kê</h1><div class="sub" id="dashDate"></div></div><div class="topbar-actions"><button class="btn" onclick="toggleCalc()" title="Máy tính (Ctrl+K)">🧮 Máy tính</button><button class="btn" onclick="exportCSV()">↓ CSV</button></div></div>
   <div class="month-nav"><button onclick="changeMonth(-1)">‹</button><div class="current-month" id="monthLabel"></div><button onclick="changeMonth(1)">›</button></div>
   <div class="metrics" id="dashMetrics"></div>
-  <!-- WIDGET: Ngân sách tuần -->
-  <div class="card" id="weekBudgetCard" style="margin-bottom:12px;">
+  <!-- WIDGET: Tiền dùng trong tháng -->
+  <div class="card" id="monthMoneyCard" style="margin-bottom:12px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <div class="card-title" style="color:var(--accent2);margin:0;">📅 Ngân sách tuần</div>
-      <button class="btn" onclick="resetWeekBudget()" style="font-size:10px;padding:4px 10px;" title="Xóa ngân sách">✕ Xóa</button>
-    </div>
-    <div id="weekBudgetSetup">
-      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:flex-end;">
-        <div class="field" style="margin:0;">
-          <label>Tổng tiền được dùng tháng này (₫)</label>
-          <div class="smart-input-wrap">
-            <input type="number" id="weekBudgetInput" placeholder="Nhập ngân sách tháng..." step="any" min="0"
-              oninput="smartPreview(this,'weekBudgetPreview')"
-              onkeydown="if(event.key==='Enter')saveWeekBudget()"/>
-            <span class="smart-preview" id="weekBudgetPreview"></span>
-          </div>
-        </div>
-        <button class="btn btn-accent" onclick="saveWeekBudget()" style="height:36px;">Lưu</button>
+      <div class="card-title" style="color:var(--accent2);margin:0;">💵 Tiền dùng trong tháng</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn" onclick="editMonthMoney()" style="font-size:10px;padding:4px 10px;" title="Sửa số tiền">✏️ Sửa</button>
+        <button class="btn" onclick="resetMonthMoney()" style="font-size:10px;padding:4px 10px;" title="Xóa dữ liệu">✕ Xóa</button>
       </div>
     </div>
-    <div id="weekBudgetResult"></div>
+    <div id="monthMoneySetup">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:flex-end;">
+        <div class="field" style="margin:0;">
+          <label>Tiền dùng trong tháng (nhập 5000 = 5,000,000₫)</label>
+          <div class="smart-input-wrap">
+            <input type="number" id="monthMoneyInput" placeholder="Nhập số tiền còn được dùng..." step="any" min="0"
+              oninput="smartPreview(this,'monthMoneyPreview')"
+              onkeydown="if(event.key==='Enter')saveMonthMoney()"/>
+            <span class="smart-preview" id="monthMoneyPreview"></span>
+          </div>
+        </div>
+        <button class="btn btn-accent" onclick="saveMonthMoney()" style="height:36px;">Lưu</button>
+      </div>
+    </div>
+    <div id="monthMoneyResult"></div>
   </div>
   <div class="entry-row">
     <div class="card">
@@ -402,7 +429,7 @@ html{scroll-behavior:smooth;}
         <button class="chi-type-btn active" data-val="normal" onclick="setChiType('normal')">💳 Chi thường</button>
         <button class="chi-type-btn" data-val="extra" onclick="setChiType('extra')">⚡ Chi ngoài</button>
       </div>
-      <div id="chiTypeHint" class="chi-hint-normal">Trừ vào ngân sách tuần · lố mới trừ tiết kiệm</div>
+      <div id="chiTypeHint" class="chi-hint-normal">Trừ vào tiền dùng trong tháng · không ảnh hưởng tiết kiệm</div>
       <div class="quick-row" id="quickChiRow"></div>
       <div class="field"><label>Danh mục chi</label><select id="chiCat"></select></div>
       <div class="field"><label>Mô tả</label><input type="text" id="chiNote" placeholder="Chi tiết..."/></div>
@@ -455,7 +482,7 @@ html{scroll-behavior:smooth;}
 
 <!-- STATS -->
 <div id="page-stats" class="page">
-  <div class="topbar"><div class="topbar-left"><h1>📉 Thống kê</h1><div class="sub" id="statsPeriod"></div></div></div>
+  <div class="topbar"><div class="topbar-left"><h1>📉 Biểu đồ</h1><div class="sub" id="statsPeriod"></div></div></div>
   <div class="stats-grid">
     <div class="card"><div class="tx-header"><h3>Thu & chi 7 ngày</h3></div><div class="chart-wrap"><canvas id="weekChart"></canvas></div></div>
     <div class="card"><div class="tx-header"><h3>Chi theo danh mục</h3></div><div class="chart-wrap"><canvas id="catChart"></canvas></div></div>
@@ -712,7 +739,7 @@ function setChiType(type){
   const card=$('chiFormCard');
   const title=$('chiFormTitle');
   if(hint){
-    hint.textContent=type==='normal'?'Trừ vào ngân sách tuần · lố mới trừ tiết kiệm':'⚠ Trừ thẳng tổng tài sản · không qua ngân sách tuần';
+    hint.textContent=type==='normal'?'Trừ vào tiền dùng trong tháng · không ảnh hưởng tiết kiệm':'⚠ Trừ thẳng tổng tài sản & tiết kiệm';
     hint.className=type==='normal'?'chi-hint-normal':'chi-hint-extra';
   }
   if(card){
@@ -770,8 +797,8 @@ function updateAll(){
     <div class="metric"><div class="label">Thu tháng</div><div class="val val-green">${fmt(thu)}</div><div class="sub-val">${mTx.filter(t=>t.type==='thu').length} giao dịch</div></div>
     <div class="metric"><div class="label">Chi tháng</div><div class="val val-red">${fmt(chi)}</div><div class="sub-val">${mTx.filter(t=>t.type==='chi').length} giao dịch</div></div>
     <div class="metric"><div class="label">Ròng</div><div class="val ${net>=0?'val-green':'val-red'}">${net>=0?'+':''}${fmt(net)}</div><div class="sub-val">${net>=0?'Thặng dư':'Thâm hụt'}</div></div>
-    <div class="metric"><div class="label">Tiết kiệm</div><div class="val ${getSavings()>=0?'val-green':'val-red'}">${getSavings()>=0?'':'−'}${fmt(Math.abs(getSavings()))}</div><div class="sub-val">${weekBudgetData?'Chi ngoài trừ thẳng · chi thường qua NS tuần':'Chưa đặt ngân sách'}</div></div>`;
-  renderMonthList(mTx);renderMonthChart(mTx);calcWeekBudget();
+    <div class="metric"><div class="label">Tiết kiệm</div><div class="val ${getSavings()>=0?'val-green':'val-red'}">${getSavings()>=0?'':'−'}${fmt(Math.abs(getSavings()))}</div><div class="sub-val">${monthMoneyData?'Tổng tài sản − tiền dùng còn lại':'Chưa đặt tiền dùng trong tháng'}</div></div>`;
+  renderMonthList(mTx);renderMonthChart(mTx);renderMonthMoney();
 }
 
 function renderMonthList(txs){
@@ -1080,10 +1107,10 @@ function jsonp(url,timeout=20000){return new Promise((resolve,reject)=>{const cb
 function cloudSend(action,data){return jsonp(syncUrl+'?action='+action+'&payload='+encodeURIComponent(JSON.stringify(data)));}
 async function cloudConnect(){syncUrl=$('syncUrl').value.trim().replace(/\/+$/,'');if(!syncUrl){showToast('Nhập URL',false);return;}localStorage.setItem('fin_sync_url',syncUrl);showToast('Đang kết nối...');updateSyncUI(false,'Đang kết nối...');try{const r=await jsonp(syncUrl+'?action=ping');if(r&&r.ok){syncConnected=true;updateSyncUI(true,'Đã kết nối ✓');showToast('OK! Auto-pushing...');playSuccess();await cloudPushAll();}else{syncConnected=false;updateSyncUI(false,'Lỗi');showToast('Thất bại',false);}}catch(e){syncConnected=false;updateSyncUI(false,e.message);showToast(e.message,false);}}
 function cloudDisconnect(){syncUrl='';syncConnected=false;localStorage.removeItem('fin_sync_url');$('syncUrl').value='';updateSyncUI(false,'Chưa kết nối');showToast('Đã ngắt');}
-async function cloudPull(isAuto){if(!syncUrl){showToast('Chưa kết nối',false);return;}if(isAuto&&_userDirty){updateSyncUI(true,'Skip auto-pull (có thay đổi)');return;}if(!isAuto)showToast('Pull...');updateSyncUI(true,'Pull...');try{const r=await jsonp(syncUrl+'?action=getAll');if(!r||!r.ok){if(!isAuto)showToast('Pull lỗi',false);return;}if(isAuto&&_userDirty){updateSyncUI(true,'Skip (có thay đổi mới)');return;}let merged=false;if(r.transactions){const localMap={};txData.forEach(t=>{if(t.budgetType)localMap[t.id]=t.budgetType;});const cloudBtMap=r.budgetTypeMap||{};txData=r.transactions;txData.forEach(t=>{if(!t.budgetType){if(cloudBtMap[t.id]){t.budgetType=cloudBtMap[t.id];merged=true;}else if(localMap[t.id]){t.budgetType=localMap[t.id];merged=true;}}});localStorage.setItem('fin_tx',JSON.stringify(txData));}if(r.investments){investments=r.investments;saveInv();}if(r.catsChi){catsChi=r.catsChi;localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));}if(r.catsThu){catsThu=r.catsThu;localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));}if(r.budgets){budgets=r.budgets;localStorage.setItem('fin_budgets',JSON.stringify(budgets));}if(r.opening!==undefined){opening=r.opening;localStorage.setItem('fin_opening',opening);$('openingBal').value=opening||'';}if(r.weekBudget!==undefined){if(r.weekBudget&&r.weekBudget!=='null'&&r.weekBudget!==null){weekBudgetData=r.weekBudget;localStorage.setItem('fin_week_budget',JSON.stringify(weekBudgetData));}else{weekBudgetData=null;localStorage.removeItem('fin_week_budget');}}if(r.installments){installments=r.installments;localStorage.setItem('fin_installments',JSON.stringify(installments));}if(r.accounts){accounts=r.accounts;localStorage.setItem('fin_accounts',JSON.stringify(accounts));}rebuildSelects();updateAll();showToast('Pull: '+txData.length+' GD');playSuccess();updateSyncUI(true,'Synced '+new Date().toLocaleTimeString('vi-VN'));if(merged){setTimeout(()=>cloudPushAll(),1000);}}catch(e){if(!isAuto)showToast('Pull: '+e.message,false);}}
+async function cloudPull(isAuto){if(!syncUrl){showToast('Chưa kết nối',false);return;}if(isAuto&&_userDirty){updateSyncUI(true,'Skip auto-pull (có thay đổi)');return;}if(!isAuto)showToast('Pull...');updateSyncUI(true,'Pull...');try{const r=await jsonp(syncUrl+'?action=getAll');if(!r||!r.ok){if(!isAuto)showToast('Pull lỗi',false);return;}if(isAuto&&_userDirty){updateSyncUI(true,'Skip (có thay đổi mới)');return;}let merged=false;if(r.transactions){const localMap={};txData.forEach(t=>{if(t.budgetType)localMap[t.id]=t.budgetType;});const cloudBtMap=r.budgetTypeMap||{};txData=r.transactions;txData.forEach(t=>{if(!t.budgetType){if(cloudBtMap[t.id]){t.budgetType=cloudBtMap[t.id];merged=true;}else if(localMap[t.id]){t.budgetType=localMap[t.id];merged=true;}}});localStorage.setItem('fin_tx',JSON.stringify(txData));}if(r.investments){investments=r.investments;saveInv();}if(r.catsChi){catsChi=r.catsChi;localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));}if(r.catsThu){catsThu=r.catsThu;localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));}if(r.budgets){budgets=r.budgets;localStorage.setItem('fin_budgets',JSON.stringify(budgets));}if(r.opening!==undefined){opening=r.opening;localStorage.setItem('fin_opening',opening);$('openingBal').value=opening||'';}if(r.weekBudget!==undefined){if(r.weekBudget&&r.weekBudget!=='null'&&r.weekBudget!==null){monthMoneyData=r.weekBudget;localStorage.setItem('fin_month_money',JSON.stringify(monthMoneyData));}else{monthMoneyData=null;localStorage.removeItem('fin_month_money');}}if(r.installments){installments=r.installments;localStorage.setItem('fin_installments',JSON.stringify(installments));}if(r.accounts){accounts=r.accounts;localStorage.setItem('fin_accounts',JSON.stringify(accounts));}rebuildSelects();updateAll();showToast('Pull: '+txData.length+' GD');playSuccess();updateSyncUI(true,'Synced '+new Date().toLocaleTimeString('vi-VN'));if(merged){setTimeout(()=>cloudPushAll(),1000);}}catch(e){if(!isAuto)showToast('Pull: '+e.message,false);}}
 async function cloudPushAll(){if(!syncUrl){showToast('Chưa kết nối',false);return;}showToast('Push...');updateSyncUI(true,'Push...');try{
 const btMap={};txData.forEach(t=>{if(t.budgetType)btMap[t.id]=t.budgetType;});
-const payload=JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,weekBudget:weekBudgetData,allTx:txData,allInv:investments,installments:installments,budgetTypeMap:btMap,accounts:accounts});
+const payload=JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,weekBudget:monthMoneyData,allTx:txData,allInv:investments,installments:installments,budgetTypeMap:btMap,accounts:accounts});
 const form=new FormData();form.append('action','pushAll');form.append('payload',payload);
 await fetch(syncUrl,{method:'POST',body:form,mode:'no-cors',redirect:'follow'});
 showToast('Push OK!');playSuccess();updateSyncUI(true,'Pushed '+new Date().toLocaleTimeString('vi-VN'));clearDirty();
@@ -1093,7 +1120,7 @@ function cloudDeleteTx(id){if(!syncUrl||!syncConnected)return;jsonp(syncUrl+'?ac
 function cloudAddInv(inv){if(!syncUrl||!syncConnected)return;cloudSend('addInvestment',inv).catch(()=>{});}
 function cloudDeleteInv(id){if(!syncUrl||!syncConnected)return;jsonp(syncUrl+'?action=deleteInvestment&id='+id).catch(()=>{});}
 function cloudUpdateInv(data){if(!syncUrl||!syncConnected)return;cloudSend('updateInvestment',data).catch(()=>{});}
-function cloudSaveSettings(){if(!syncUrl||!syncConnected)return;const btMap={};txData.forEach(t=>{if(t.budgetType)btMap[t.id]=t.budgetType;});const form=new FormData();form.append('action','saveSettings');form.append('payload',JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,weekBudget:weekBudgetData,installments:installments,budgetTypeMap:btMap,accounts:accounts}));fetch(syncUrl,{method:'POST',body:form,mode:'no-cors'}).catch(()=>{});}
+function cloudSaveSettings(){if(!syncUrl||!syncConnected)return;const btMap={};txData.forEach(t=>{if(t.budgetType)btMap[t.id]=t.budgetType;});const form=new FormData();form.append('action','saveSettings');form.append('payload',JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,weekBudget:monthMoneyData,installments:installments,budgetTypeMap:btMap,accounts:accounts}));fetch(syncUrl,{method:'POST',body:form,mode:'no-cors'}).catch(()=>{});}
 function updateSyncUI(connected,label){const dot=$('syncStatus');const lbl=$('syncLabel');if(dot)dot.style.background=connected?'var(--green)':'var(--text3)';if(lbl)lbl.textContent=label;}
 
 /* ── INIT ── */
@@ -1121,213 +1148,140 @@ function init(){
     },800);
   }
 }
-let weekBudgetData=JSON.parse(localStorage.getItem('fin_week_budget')||'null');
+let monthMoneyData=JSON.parse(localStorage.getItem('fin_month_money')||'null');
+// Migration từ ngân sách tuần cũ
+if(!monthMoneyData){
+  const _old=JSON.parse(localStorage.getItem('fin_week_budget')||'null');
+  if(_old&&_old.total){monthMoneyData={total:_old.total,createdAt:_old.createdAt||new Date().toISOString()};localStorage.setItem('fin_month_money',JSON.stringify(monthMoneyData));}
+}
 
-function getSavings(){
-  if(!weekBudgetData)return 0;
-  const now=new Date();
-  const curKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-  if(weekBudgetData.month!==curKey)return 0;
+function getTotalAssets(){
   const invPnL=investments.reduce((s,i)=>(i.curPrice-i.buyPrice)*i.qty+s,0);
   const accTotal=totalAccounts();
   const allThu=txData.filter(t=>t.type==='thu').reduce((s,t)=>s+t.amount,0);
   const allChi=txData.filter(t=>t.type==='chi').reduce((s,t)=>s+t.amount,0);
-  const totalAssets=opening+allThu-allChi+invPnL+accTotal;
-  // Chỉ tính chi thường SAU khi lập ngân sách
-  const budgetStart=weekBudgetData.createdAt?new Date(weekBudgetData.createdAt).getTime():0;
-  const normalChiAfterBudget=txData.filter(t=>{
+  return opening+allThu-allChi+invPnL+accTotal;
+}
+
+// Chi thường đã tiêu KỂ TỪ lúc đặt tiền dùng trong tháng
+function getMonthMoneySpent(){
+  if(!monthMoneyData)return 0;
+  const start=monthMoneyData.createdAt?new Date(monthMoneyData.createdAt).getTime():0;
+  return txData.filter(t=>{
     if(t.type!=='chi'||t.budgetType==='extra')return false;
-    const d=new Date(t.date);
-    if(d.getMonth()!==now.getMonth()||d.getFullYear()!==now.getFullYear())return false;
-    return budgetStart===0||t.id>=budgetStart;
+    return start===0||t.id>=start;
   }).reduce((s,t)=>s+t.amount,0);
-  // Tiết kiệm:
-  // - Ban đầu = tổng tài sản - ngân sách
-  // - Chi thường (trong ngân sách): KHÔNG ĐỔI
-  // - Chi thường vượt ngân sách: phần vượt GIẢM tiết kiệm
-  // - Chi ngoài: GIẢM trực tiếp
-  const budgetUsed=Math.min(normalChiAfterBudget,weekBudgetData.total);
-  return totalAssets+budgetUsed-weekBudgetData.total;
+}
+
+// Tiền dùng trong tháng còn lại = số đã đặt − chi thường (từ lúc đặt)
+function getMonthMoneyRemaining(){
+  if(!monthMoneyData)return null;
+  return monthMoneyData.total-getMonthMoneySpent();
+}
+
+// Tiết kiệm = Tổng tài sản − Tiền dùng trong tháng còn lại
+// - Chi thường: trừ tiền dùng tháng → tiết kiệm KHÔNG ĐỔI
+// - Chi ngoài: trừ thẳng tổng tài sản → tiết kiệm GIẢM
+// - Chi thường lố (còn lại âm): phần lố trừ vào tiết kiệm
+function getSavings(){
+  if(!monthMoneyData)return 0;
+  const remaining=getMonthMoneyRemaining();
+  return getTotalAssets()-Math.max(remaining,0);
 }
 let installments=JSON.parse(localStorage.getItem('fin_installments')||'[]');
 init();
 
 /* ────────────────────────────────────────────
-   WEEKLY BUDGET — Smart với rollover & auto-deduct
+   TIỀN DÙNG TRONG THÁNG
 ──────────────────────────────────────────── */
 
-function getWeekBounds(year,month){
-  const lastDay=new Date(year,month+1,0).getDate();
-  const weeks=[];
-  let ws=1;
-  for(let d=1;d<=lastDay;d++){
-    const dow=new Date(year,month,d).getDay();
-    if(dow===0||d===lastDay){
-      const numDays=d-ws+1;
-      weeks.push({start:ws,end:d,numDays});
-      ws=d+1;
-    }
-  }
-  return weeks;
-}
-
-function saveWeekBudget(){
-  const raw=parseFloat($('weekBudgetInput').value)||0;
+function saveMonthMoney(){
+  const raw=parseFloat($('monthMoneyInput').value)||0;
   if(!raw){showToast('Nhập số tiền!',false);return;}
   const total=smartAmount(raw);
-  const now=new Date();
-  weekBudgetData={month:now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'),total:total,createdAt:now.toISOString()};
-  localStorage.setItem('fin_week_budget',JSON.stringify(weekBudgetData));
+  monthMoneyData={total:total,createdAt:new Date().toISOString()};
+  localStorage.setItem('fin_month_money',JSON.stringify(monthMoneyData));
   setDirty();
   cloudSaveSettings();
-  showToast('Đã lưu ngân sách tháng!');
-  calcWeekBudget();updateAll();
-}
-
-function resetWeekBudget(){
-  if(!confirm('Xóa ngân sách tháng này?'))return;
-  weekBudgetData=null;
-  localStorage.removeItem('fin_week_budget');
-  setDirty();
-  $('weekBudgetInput').value='';
-  $('weekBudgetResult').innerHTML='';
-  $('weekBudgetSetup').style.display='';
-  cloudSaveSettings();
+  showToast('Đã lưu tiền dùng trong tháng!');
+  $('monthMoneyInput').value='';
   updateAll();
 }
 
-function calcWeekBudget(){
-  const res=$('weekBudgetResult');
-  const setup=$('weekBudgetSetup');
-  const input=$('weekBudgetInput');
+function editMonthMoney(){
+  if(!monthMoneyData){showToast('Chưa có dữ liệu, nhập mới bên dưới',false);return;}
+  const setup=$('monthMoneySetup');
+  setup.style.display='';
+  const remaining=getMonthMoneyRemaining();
+  $('monthMoneyInput').value=Math.round(remaining/1000);
+  smartPreview($('monthMoneyInput'),'monthMoneyPreview');
+  $('monthMoneyInput').focus();
+  $('monthMoneyInput').select();
+}
+
+function resetMonthMoney(){
+  if(!monthMoneyData){showToast('Chưa có dữ liệu',false);return;}
+  if(!confirm('Xóa tiền dùng trong tháng?'))return;
+  monthMoneyData=null;
+  localStorage.removeItem('fin_month_money');
+  localStorage.removeItem('fin_week_budget');
+  setDirty();
+  $('monthMoneyInput').value='';
+  const p=$('monthMoneyPreview');if(p)p.textContent='';
+  cloudSaveSettings();
+  updateAll();
+  showToast('Đã xóa');
+}
+
+function renderMonthMoney(){
+  const res=$('monthMoneyResult');
+  const setup=$('monthMoneySetup');
   if(!res)return;
 
-  const now=new Date();
-  const curMonthKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-
-  if(!weekBudgetData||weekBudgetData.month!==curMonthKey){
+  if(!monthMoneyData){
     if(setup)setup.style.display='';
-    res.innerHTML='<div style="font-size:11px;color:var(--text3);padding:8px 0;">Nhập ngân sách tháng để bắt đầu theo dõi chi tiêu theo tuần.</div>';
+    res.innerHTML='<div style="font-size:11px;color:var(--text3);padding:8px 0;">Nhập số tiền được dùng trong tháng. Chi thường sẽ trừ vào đây · chi ngoài trừ thẳng tổng tài sản & tiết kiệm.</div>';
     return;
   }
 
   if(setup)setup.style.display='none';
-  if(input)input.value=Math.round(weekBudgetData.total/1000);
 
-  const total=weekBudgetData.total;
-  const year=now.getFullYear();
-  const month=now.getMonth();
-  const todayDate=now.getDate();
-  const allWeeks=getWeekBounds(year,month);
-
-  // Lọc bỏ tuần <4 ngày
-  const weeks=allWeeks.filter(w=>w.numDays>=4);
-
-  // Chi thường tháng này
-  const monthChi=txData.filter(t=>{
-    if(t.type!=='chi')return false;
-    if(t.budgetType==='extra')return false;
-    const d=new Date(t.date);
-    return d.getMonth()===month&&d.getFullYear()===year;
-  });
-  // Chi ngoài
+  const total=monthMoneyData.total;
+  const spent=getMonthMoneySpent();
+  const remaining=total-spent;
+  const now=new Date();
+  // Chi ngoài tháng hiện tại (chỉ để tham khảo)
   const monthChiExtra=txData.filter(t=>{
-    if(t.type!=='chi')return false;
-    if(t.budgetType!=='extra')return false;
+    if(t.type!=='chi'||t.budgetType!=='extra')return false;
     const d=new Date(t.date);
-    return d.getMonth()===month&&d.getFullYear()===year;
+    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
   }).reduce((s,t)=>s+t.amount,0);
 
-  // Tìm tuần hiện tại
-  let currentIdx=weeks.length-1;
-  let inValidWeek=false;
-  for(let i=0;i<weeks.length;i++){
-    if(todayDate>=weeks[i].start&&todayDate<=weeks[i].end){inValidWeek=true;currentIdx=i;break;}
-  }
-  if(!inValidWeek) currentIdx=weeks.length-1;
+  const remColor=remaining>=0?'#1d9e75':'#d85a30';
+  const pct=total>0?Math.max(0,Math.min(100,Math.round(remaining/total*100))):0;
+  const setDate=monthMoneyData.createdAt?new Date(monthMoneyData.createdAt):null;
+  const setStr=setDate?setDate.toLocaleDateString('vi-VN')+' '+setDate.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}):'';
 
-  // Chỉ chia ngân sách cho tuần hiện tại + tương lai (bỏ tuần đã qua)
-  const activeWeeks=weeks.length-currentIdx;
-  const perWeek=activeWeeks>0?Math.round(total/activeWeeks):total;
-
-  // Tính chi tiêu cho từng tuần
-  const details=[];
-  for(let i=0;i<weeks.length;i++){
-    const w=weeks[i];
-    let actualStart=w.start,actualEnd=w.end;
-    if(i===weeks.length-1){
-      const lastDay=new Date(year,month+1,0).getDate();
-      if(actualEnd<lastDay) actualEnd=lastDay;
-    }
-
-    const spent=monthChi.filter(t=>{
-      const d=new Date(t.date).getDate();
-      return d>=actualStart&&d<=actualEnd;
-    }).reduce((s,t)=>s+t.amount,0);
-
-    const isPast=i<currentIdx;
-    const isCurrent=i===currentIdx;
-    const isFuture=i>currentIdx;
-    const budget=isPast?0:perWeek;
-    const remaining=isPast?0:budget-spent;
-
-    details.push({start:actualStart,end:actualEnd,numDays:actualEnd-actualStart+1,budget,spent,remaining,isPast,isCurrent,isFuture,idx:i});
-  }
-
-  const totalSpent=monthChi.reduce((s,t)=>s+t.amount,0);
-  const totalRemaining=total-totalSpent;
-  const cur=details[currentIdx];
-
-  // ── Render ──
-  let html='';
-  const remColor=totalRemaining>=0?'#1d9e75':'#d85a30';
-  const curColor=cur.remaining>=0?'#1d9e75':'#d85a30';
-  html+=`<div class="week-budget-result" style="margin-bottom:12px;">
+  let html=`<div class="week-budget-result" style="margin-bottom:10px;">
     <div class="week-metric">
-      <div class="week-metric-val" style="color:${curColor};font-size:17px;">${cur.remaining>=0?'':'−'}${fmt(Math.abs(cur.remaining))}</div>
-      <div class="week-metric-lbl">Tuần này còn</div>
+      <div class="week-metric-val" style="color:${remColor};font-size:19px;">${remaining>=0?'':'−'}${fmt(Math.abs(remaining))}</div>
+      <div class="week-metric-lbl">Còn được dùng</div>
     </div>
     <div class="week-metric">
-      <div class="week-metric-val" style="color:${remColor};font-size:17px;">${totalRemaining>=0?'':'−'}${fmt(Math.abs(totalRemaining))}</div>
-      <div class="week-metric-lbl">Tháng còn</div>
-    </div>
-    <div class="week-metric">
-      <div class="week-metric-val" style="font-size:15px;color:var(--text3);">${fmt(totalSpent)}</div>
-      <div class="week-metric-lbl">Đã chi (ngân sách)</div>
+      <div class="week-metric-val" style="font-size:15px;color:var(--text3);">${fmt(spent)}</div>
+      <div class="week-metric-lbl">Đã chi thường</div>
     </div>
     ${monthChiExtra>0?`<div class="week-metric">
       <div class="week-metric-val" style="font-size:15px;color:var(--amber);">${fmt(monthChiExtra)}</div>
-      <div class="week-metric-lbl">Chi ngoài ⚡</div>
+      <div class="week-metric-lbl">Chi ngoài tháng này ⚡</div>
     </div>`:''}
   </div>`;
 
-  // Timeline tuần
-  html+=`<div style="font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;">
-    Chi tiết ${activeWeeks} tuần · Ngân sách: ${fmt(total)} · ${fmt(perWeek)}/tuần
+  html+=`<div style="background:var(--bg3);border-radius:6px;height:6px;overflow:hidden;margin-bottom:8px;">
+    <div style="height:6px;border-radius:6px;width:${pct}%;background:${remColor};transition:width .5s cubic-bezier(.22,1,.36,1);"></div>
   </div>`;
-  html+='<div class="week-timeline">';
-  for(const w of details){
-    const m=month+1;
-    let cls='week-chip';
-    if(w.isCurrent)cls+=' this-week';
-    if(w.isPast)cls+=' past-week';
-    const remC=w.isPast?'var(--text3)':w.remaining>=0?'#1d9e75':'#d85a30';
-    html+=`<div class="${cls}">
-      <div style="font-size:8px;opacity:.7;margin-bottom:2px;">T${w.idx+1}: ${w.start}/${m}–${w.end}/${m} (${w.numDays} ngày)</div>
-      <div style="font-size:12px;font-weight:700;color:${remC};">${w.isPast?'—':w.remaining>=0?'':'−'}${w.isPast?'':fmt(Math.abs(w.remaining))}</div>
-      <div style="font-size:8px;margin-top:2px;color:var(--text3);">
-        ${w.isPast?'Đã qua'+(w.spent>0?' · chi '+fmt(w.spent):''):w.isCurrent?'Còn lại · '+fmt(w.budget):'Dự kiến · '+fmt(w.budget)}
-      </div>
-      ${w.isCurrent&&w.spent>0?`<div style="font-size:8px;color:#d85a30;">Chi: ${fmt(w.spent)}</div>`:''}
-    </div>`;
-  }
-  html+='</div>';
 
-  // Nút chỉnh sửa
-  html+=`<div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
-    <button class="btn" onclick="$('weekBudgetSetup').style.display='';$('weekBudgetInput').value=${Math.round(total/1000)};$('weekBudgetInput').focus();" style="font-size:10px;padding:4px 10px;">✏️ Sửa ngân sách</button>
-    <span style="font-size:9px;color:var(--text3);">Tháng ${month+1}/${year} · Tuần ${currentIdx+1}/${weeks.length} (${todayDate}/${month+1})</span>
-  </div>`;
+  html+=`<div style="font-size:9px;color:var(--text3);">Đặt: ${fmt(total)} · ${setStr} · còn ${pct}%${remaining<0?' · <span style="color:#d85a30">lố '+fmt(Math.abs(remaining))+' đang trừ tiết kiệm</span>':''}</div>`;
 
   res.innerHTML=html;
 }
@@ -1765,5 +1719,132 @@ updateAll=function(){
   draw();
 })();
 
+
+/* ────────────────────────────────────────────
+   CALCULATOR POPUP (Ctrl+K)
+──────────────────────────────────────────── */
+let _calcExpr='';
+let _calcJustEq=false;
+
+function toggleCalc(){const o=$('calcOverlay');if(o.classList.contains('show'))closeCalc();else openCalc();}
+function openCalc(){playClick();$('calcOverlay').classList.add('show');calcRender();}
+function closeCalc(){$('calcOverlay').classList.remove('show');}
+
+function calcSanitize(s){return s.replace(/[^0-9+\-*/.%()]/g,'');}
+
+function calcEval(expr){
+  const s=calcSanitize(expr);
+  if(!s)return null;
+  // % = chia 100 (vd 50% → 0.5)
+  const conv=s.replace(/(\d+\.?\d*)%/g,'($1/100)');
+  if(/[+\-*/.(]$/.test(conv))return null;
+  try{
+    const v=Function('"use strict";return('+conv+')')();
+    if(typeof v!=='number'||!isFinite(v))return null;
+    return v;
+  }catch(e){return null;}
+}
+
+function calcFmtNum(v){
+  if(v===null||v===undefined)return '';
+  const r=Math.round(v*100)/100;
+  return r.toLocaleString('vi-VN',{maximumFractionDigits:2});
+}
+
+function calcRender(final){
+  const exprEl=$('calcExpr'),outEl=$('calcOut');
+  const disp=_calcExpr.replace(/\*/g,'×').replace(/\//g,'÷').replace(/-/g,'−');
+  if(final!==undefined&&final!==null){
+    exprEl.textContent=disp+' =';
+    outEl.textContent=calcFmtNum(final);
+    outEl.className='calc-out';
+    return;
+  }
+  exprEl.textContent='';
+  if(!_calcExpr){outEl.textContent='0';outEl.className='calc-out';return;}
+  outEl.textContent=disp;
+  outEl.className='calc-out';
+  const preview=calcEval(_calcExpr);
+  if(preview!==null&&!/^[0-9.]+$/.test(_calcExpr)){
+    exprEl.textContent=disp;
+    outEl.textContent='= '+calcFmtNum(preview);
+    outEl.className='calc-out preview';
+  }
+}
+
+function calcKey(k){
+  playClick();
+  if(k==='C'){_calcExpr='';_calcJustEq=false;calcRender();return;}
+  if(k==='back'){_calcExpr=_calcExpr.slice(0,-1);_calcJustEq=false;calcRender();return;}
+  if(k==='='){
+    const v=calcEval(_calcExpr);
+    if(v===null){showToast('Biểu thức không hợp lệ',false);return;}
+    calcRender(v);
+    _calcExpr=String(Math.round(v*100)/100);
+    _calcJustEq=true;
+    return;
+  }
+  // Sau khi =, gõ số mới thì bắt đầu lại; gõ phép tính thì nối tiếp
+  if(_calcJustEq){
+    if(/[0-9.]/.test(k)&&k!=='000')_calcExpr='';
+    _calcJustEq=false;
+  }
+  if(k==='000'){if(!_calcExpr||/[+\-*/(%]$/.test(_calcExpr))return;_calcExpr+='000';calcRender();return;}
+  // Tránh 2 toán tử liền nhau
+  if(/[+*/%]/.test(k)&&(/[+\-*/.%]$/.test(_calcExpr)||!_calcExpr))return;
+  if(k==='-'&&/[+\-.%]$/.test(_calcExpr))return;
+  if(k==='.'){const seg=_calcExpr.split(/[+\-*/%()]/).pop();if(seg.includes('.'))return;}
+  _calcExpr+=k;
+  calcRender();
+}
+
+document.addEventListener('keydown',e=>{
+  // Ctrl/Cmd+K: bật tắt máy tính ở mọi nơi
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();toggleCalc();return;}
+  const open=$('calcOverlay').classList.contains('show');
+  if(!open)return;
+  // Khi máy tính mở: bắt phím
+  if(e.key==='Escape'){e.preventDefault();closeCalc();return;}
+  const tag=(document.activeElement&&document.activeElement.tagName)||'';
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;
+  if(/^[0-9]$/.test(e.key)){e.preventDefault();calcKey(e.key);return;}
+  if(['+','-','*','/','%','.','(',')'].includes(e.key)){e.preventDefault();if(e.key==='('||e.key===')'){_calcExpr+=e.key;calcRender();}else calcKey(e.key);return;}
+  if(e.key==='Enter'||e.key==='='){e.preventDefault();calcKey('=');return;}
+  if(e.key==='Backspace'){e.preventDefault();calcKey('back');return;}
+  if(e.key.toLowerCase()==='c'&&!e.ctrlKey&&!e.metaKey){e.preventDefault();calcKey('C');return;}
+});
+
 </script>
+<div class="calc-overlay" id="calcOverlay" onclick="if(event.target===this)closeCalc()">
+  <div class="calc-box">
+    <div class="calc-head"><span class="ttl">🧮 MÁY TÍNH</span><button class="calc-close" onclick="closeCalc()" title="Đóng (Esc)">✕</button></div>
+    <div class="calc-screen">
+      <div class="calc-expr" id="calcExpr"></div>
+      <div class="calc-out" id="calcOut">0</div>
+    </div>
+    <div class="calc-grid">
+      <button class="calc-btn fn" onclick="calcKey('C')">C</button>
+      <button class="calc-btn fn" onclick="calcKey('back')">⌫</button>
+      <button class="calc-btn op" onclick="calcKey('%')">%</button>
+      <button class="calc-btn op" onclick="calcKey('/')">÷</button>
+      <button class="calc-btn" onclick="calcKey('7')">7</button>
+      <button class="calc-btn" onclick="calcKey('8')">8</button>
+      <button class="calc-btn" onclick="calcKey('9')">9</button>
+      <button class="calc-btn op" onclick="calcKey('*')">×</button>
+      <button class="calc-btn" onclick="calcKey('4')">4</button>
+      <button class="calc-btn" onclick="calcKey('5')">5</button>
+      <button class="calc-btn" onclick="calcKey('6')">6</button>
+      <button class="calc-btn op" onclick="calcKey('-')">−</button>
+      <button class="calc-btn" onclick="calcKey('1')">1</button>
+      <button class="calc-btn" onclick="calcKey('2')">2</button>
+      <button class="calc-btn" onclick="calcKey('3')">3</button>
+      <button class="calc-btn op" onclick="calcKey('+')">+</button>
+      <button class="calc-btn" onclick="calcKey('000')">000</button>
+      <button class="calc-btn" onclick="calcKey('0')">0</button>
+      <button class="calc-btn" onclick="calcKey('.')">.</button>
+      <button class="calc-btn eq" onclick="calcKey('=')" style="grid-row:auto;">=</button>
+    </div>
+    <div class="calc-hint">Ctrl+K mở/đóng · Enter = kết quả · Esc đóng · gõ trực tiếp từ bàn phím</div>
+  </div>
+</div>
 </body></html>
