@@ -510,7 +510,7 @@ html{scroll-behavior:smooth;}
         <button class="btn gchart-btn" id="gcBtnSjc" onclick="switchGoldChart('sjc')" style="font-size:10px;padding:4px 10px;">SJC</button>
       </div>
     </div>
-    <div style="height:220px;"><canvas id="goldChart"></canvas></div>
+    <div style="height:220px;"><canvas id="goldChart"></canvas></div><div style="font-size:8px;color:var(--text3);margin-top:6px;">Thế giới: Binance PAXG/USDT (bám sát XAU spot) · SJC: vang.today</div>
   </div>
 
   <div class="card">
@@ -1896,6 +1896,31 @@ document.addEventListener('keydown',e=>{
 const LUONG_PER_OZ = 37.5/31.1034768; // 1 lượng = 37.5g, 1 troy oz = 31.1035g
 let _goldInited=false, _goldTimer=null, _usdVnd=0, _xauUsd=0;
 let _goldChartObj=null, _goldChartMode='world';
+
+// Fetch JSON với timeout
+async function fetchJson(url,timeout=9000){
+  const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),timeout);
+  try{const r=await fetch(url,{signal:ctl.signal});clearTimeout(t);if(!r.ok)throw 0;return await r.json();}
+  catch(e){clearTimeout(t);return null;}
+}
+async function fetchText(url,timeout=9000){
+  const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),timeout);
+  try{const r=await fetch(url,{signal:ctl.signal});clearTimeout(t);if(!r.ok)throw 0;return await r.text();}
+  catch(e){clearTimeout(t);return null;}
+}
+// vang.today bị chặn CORS trực tiếp → thử direct rồi qua 2 proxy
+function proxyUrls(url){
+  return [url,
+    'https://api.allorigins.win/raw?url='+encodeURIComponent(url),
+    'https://corsproxy.io/?url='+encodeURIComponent(url)];
+}
+async function fetchJsonMulti(url){
+  for(const u of proxyUrls(url)){
+    const r=await fetchJson(u);
+    if(r)return r;
+  }
+  return null;
+}
 let _goldHist={world:null,sjc:null};
 
 function initGoldPage(){
@@ -1919,16 +1944,35 @@ async function loadGold(manual){
     const g=await fetch('https://api.gold-api.com/price/XAU').then(x=>x.json());
     if(g&&g.price)_xauUsd=g.price;
   }catch(e){}
-  // 3) Vàng trong nước
+  // 3) Vàng trong nước: vang.today (direct → proxy) → fallback scrape SJC
   let domestic=null;
-  try{
-    const v=await fetch('https://www.vang.today/api/prices').then(x=>x.json());
-    if(v&&v.success&&v.data)domestic=v.data;
-    // fallback XAU nếu gold-api lỗi
-    if(!_xauUsd&&domestic){const w=domestic.find(d=>d.type_code==='XAUUSD');if(w)_xauUsd=w.sell||w.buy;}
-  }catch(e){}
+  const v=await fetchJsonMulti('https://www.vang.today/api/prices');
+  if(v&&v.success&&v.data)domestic=v.data;
+  if(!_xauUsd&&domestic){const w=domestic.find(d=>d.type_code==='XAUUSD');if(w)_xauUsd=w.sell||w.buy;}
+  if(!domestic){
+    const sjc=await scrapeSjc();
+    if(sjc)domestic=[{type_code:'SJL1L10',buy:sjc.buy,sell:sjc.sell,change_buy:0,change_sell:0,_src:'sjc.com.vn'}];
+  }
   renderGoldPrices(domestic);
   loadGoldHistory();
+}
+
+// Fallback: bóc giá SJC 1L trực tiếp từ sjc.com.vn (qua proxy)
+async function scrapeSjc(){
+  for(const u of proxyUrls('https://sjc.com.vn/giavang/textContent.php')){
+    if(!u.startsWith('http'))continue;
+    const html=await fetchText(u);
+    if(!html)continue;
+    // Tìm dòng chứa "SJC 1L" rồi lấy 2 số đầu tiên sau đó
+    const m=html.replace(/\s+/g,' ').match(/SJC 1L[\s\S]{0,120}?(\d[\d.,]{5,})[\s\S]{0,60}?(\d[\d.,]{5,})/i);
+    if(m){
+      let buy=parseInt(m[1].replace(/[.,]/g,''),10);
+      let sell=parseInt(m[2].replace(/[.,]/g,''),10);
+      if(buy<1e6)buy*=1000; if(sell<1e6)sell*=1000; // đơn vị ngàn đồng → đồng
+      if(buy>1e7&&sell>1e7)return {buy,sell};
+    }
+  }
+  return null;
 }
 
 function fmtTr(v){ // hiển thị triệu đồng gọn: 120,5tr
@@ -1986,14 +2030,18 @@ function renderGoldPrices(domestic){
 }
 
 async function loadGoldHistory(){
-  try{
-    const [w,s]=await Promise.all([
-      fetch('https://www.vang.today/api/prices?type=XAUUSD&days=30').then(x=>x.json()).catch(()=>null),
-      fetch('https://www.vang.today/api/prices?type=SJL1L10&days=30').then(x=>x.json()).catch(()=>null)
-    ]);
+  // Thế giới: Binance PAXG/USDT daily (PAXG = vàng token hóa, bám sát XAU, CORS chuẩn)
+  const kl=await fetchJson('https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=1d&limit=30');
+  if(Array.isArray(kl)&&kl.length){
+    _goldHist.world=kl.map(k=>({update_time:Math.floor(k[0]/1000),sell:parseFloat(k[4])}));
+  }else{
+    // fallback: vang.today history qua proxy
+    const w=await fetchJsonMulti('https://www.vang.today/api/prices?type=XAUUSD&days=30');
     _goldHist.world=(w&&w.success&&Array.isArray(w.data))?w.data:null;
-    _goldHist.sjc=(s&&s.success&&Array.isArray(s.data))?s.data:null;
-  }catch(e){}
+  }
+  // SJC: vang.today qua proxy
+  const s=await fetchJsonMulti('https://www.vang.today/api/prices?type=SJL1L10&days=30');
+  _goldHist.sjc=(s&&s.success&&Array.isArray(s.data))?s.data:null;
   drawGoldChart();
 }
 
@@ -2008,7 +2056,16 @@ function drawGoldChart(){
   const hist=isW?_goldHist.world:_goldHist.sjc;
   const ctx=$('goldChart');if(!ctx)return;
   if(_goldChartObj){_goldChartObj.destroy();_goldChartObj=null;}
-  if(!hist||!hist.length){return;}
+  const wrap=ctx.parentElement;
+  let note=wrap.querySelector('.gchart-note');
+  if(!hist||!hist.length){
+    if(!note){note=document.createElement('div');note.className='gchart-note';note.style.cssText='display:flex;align-items:center;justify-content:center;height:100%;font-size:11px;color:var(--text3);';wrap.appendChild(note);}
+    note.textContent=isW?'Không tải được dữ liệu biểu đồ thế giới — nhấn Làm mới':'Nguồn lịch sử SJC (vang.today) tạm lỗi — nhấn Làm mới thử lại';
+    ctx.style.display='none';
+    return;
+  }
+  if(note)note.remove();
+  ctx.style.display='';
   const pts=hist.slice().sort((a,b)=>(a.update_time||0)-(b.update_time||0));
   const labels=pts.map(p=>new Date((p.update_time||0)*1000).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'}));
   const vals=pts.map(p=>p.sell||p.buy||0);
