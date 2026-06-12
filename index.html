@@ -336,6 +336,31 @@ html{scroll-behavior:smooth;}
 .hl-glow{box-shadow:0 0 0 1px var(--hl,#E8B44A),0 0 26px -4px var(--hl,#E8B44A) !important;border-color:var(--hl,#E8B44A) !important;transform:translateY(-3px);opacity:1 !important;position:relative;z-index:2;}
 .hl-dim{opacity:.35;}
 
+/* ── COUNT-UP PULSE ── */
+@keyframes hlPulse{0%{box-shadow:0 0 0 0 rgba(232,180,74,.5)}70%{box-shadow:0 0 0 14px rgba(232,180,74,0)}100%{box-shadow:0 0 0 0 rgba(232,180,74,0)}}
+#dashMetrics .metric.pulse{animation:hlPulse .9s ease-out 1;}
+
+/* ── PRIVACY MODE ── */
+body.privacy .val,body.privacy .tx-amt,body.privacy .metric-val,body.privacy .week-metric-val,body.privacy .ci-val,body.privacy .smart-preview,body.privacy #historyBody td:nth-child(5),body.privacy .stats-cat-row span:last-child{filter:blur(7px);user-select:none;}
+
+/* ── HEATMAP CHI TIÊU ── */
+.hm-wrap{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;}
+.hm-days{display:flex;flex-direction:column;gap:3px;font-size:8px;color:var(--text3);padding-top:14px;flex-shrink:0;}
+.hm-days span{height:11px;line-height:11px;}
+.hm-grid{display:flex;gap:3px;}
+.hm-col{display:flex;flex-direction:column;gap:3px;}
+.hm-month{font-size:8px;color:var(--text3);height:11px;white-space:nowrap;}
+.hm-cell{width:11px;height:11px;border-radius:2.5px;background:var(--bg3);cursor:default;transition:transform .12s;}
+.hm-cell:hover{transform:scale(1.35);outline:.5px solid var(--accent);}
+.hm-legend{display:flex;align-items:center;gap:4px;font-size:8px;color:var(--text3);margin-top:8px;justify-content:flex-end;}
+.hm-legend .hm-cell{cursor:default;}
+
+/* ── INSIGHT BAR ── */
+.insight-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.insight-chip{background:var(--bg2);border:.5px solid var(--border);border-radius:10px;padding:7px 12px;font-size:10px;color:var(--text2);display:flex;align-items:center;gap:6px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);animation:fadeUp .4s ease both;}
+.insight-chip b{color:var(--text);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
 /* ── CALCULATOR POPUP ── */
 .calc-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s ease;}
 .calc-overlay.show{opacity:1;pointer-events:auto;}
@@ -397,9 +422,10 @@ html{scroll-behavior:smooth;}
 
 <!-- DASHBOARD -->
 <div id="page-dashboard" class="page active">
-  <div class="topbar"><div class="topbar-left"><h1>📊 Thống kê</h1><div class="sub" id="dashDate"></div></div><div class="topbar-actions"><button class="btn" onclick="toggleCalc()" title="Máy tính (Ctrl+K)">🧮 Máy tính</button><button class="btn" onclick="exportCSV()">↓ CSV</button></div></div>
+  <div class="topbar"><div class="topbar-left"><h1>📊 Thống kê</h1><div class="sub" id="dashDate"></div></div><div class="topbar-actions"><button class="btn" id="fomcChip" onclick="showPage('gold')" style="display:none;border-color:rgba(232,180,74,.4);"></button><button class="btn" id="privacyBtn" onclick="togglePrivacy()" title="Ẩn/hiện số tiền (phím H)">👁</button><button class="btn" onclick="toggleCalc()" title="Máy tính (Ctrl+K)">🧮 Máy tính</button><button class="btn" onclick="exportCSV()">↓ CSV</button></div></div>
   <div class="month-nav"><button onclick="changeMonth(-1)">‹</button><div class="current-month" id="monthLabel"></div><button onclick="changeMonth(1)">›</button></div>
   <div class="metrics" id="dashMetrics"></div>
+  <div class="insight-bar" id="insightBar" style="display:none;"></div>
   <!-- WIDGET: Tiền dùng trong tháng -->
   <div class="card" id="monthMoneyCard" style="margin-bottom:12px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
@@ -530,6 +556,7 @@ html{scroll-behavior:smooth;}
     <div class="card"><div class="tx-header"><h3>Thu & chi 7 ngày</h3></div><div class="chart-wrap"><canvas id="weekChart"></canvas></div></div>
     <div class="card"><div class="tx-header"><h3>Chi theo danh mục</h3></div><div class="chart-wrap"><canvas id="catChart"></canvas></div></div>
   </div>
+  <div class="card" style="margin-bottom:12px;"><div class="tx-header"><h3>🗓 Heatmap chi tiêu · 18 tuần</h3></div><div class="hm-wrap" id="hmWrap"></div><div class="hm-legend">Ít <span class="hm-cell" style="background:var(--bg3)"></span><span class="hm-cell" style="background:rgba(232,180,74,.25)"></span><span class="hm-cell" style="background:rgba(232,180,74,.55)"></span><span class="hm-cell" style="background:rgba(216,90,48,.75)"></span><span class="hm-cell" style="background:#d85a30"></span> Nhiều</div></div>
   <div class="card"><div class="tx-header"><h3>Phân tích</h3></div><div id="catBreakdown"></div></div>
 </div>
 
@@ -841,7 +868,7 @@ function updateAll(){
     <div class="metric" data-m="chi"><div class="label">Chi tháng</div><div class="val val-red">${fmt(chi)}</div><div class="sub-val">${mTx.filter(t=>t.type==='chi').length} giao dịch</div></div>
     <div class="metric" data-m="net"><div class="label">Ròng</div><div class="val ${net>=0?'val-green':'val-red'}">${net>=0?'+':''}${fmt(net)}</div><div class="sub-val">${net>=0?'Thặng dư':'Thâm hụt'}</div></div>
     <div class="metric" data-m="savings"><div class="label">Tiết kiệm</div><div class="val ${getSavings()>=0?'val-green':'val-red'}">${getSavings()>=0?'':'−'}${fmt(Math.abs(getSavings()))}</div><div class="sub-val">${monthMoneyData?'Tổng tài sản − tiền dùng còn lại':'Chưa đặt tiền dùng trong tháng'}</div></div>`;
-  renderMonthList(mTx);renderMonthChart(mTx);renderMonthMoney();
+  renderMonthList(mTx);renderMonthChart(mTx);renderMonthMoney();animMetrics({assets:sodu+accTotal,thu:thu,chi:chi,net:net,savings:getSavings()});renderInsights(mTx);
 }
 
 function renderMonthList(txs){
@@ -861,7 +888,7 @@ function resetFilters(){$('filterType').value='all';$('filterCat').value='all';$
 function renderHistory(){let f=[...txData].reverse();const type=$('filterType').value,cat=$('filterCat').value,month=$('filterMonth').value;if(type==='thu')f=f.filter(t=>t.type==='thu');else if(type==='chi')f=f.filter(t=>t.type==='chi');else if(type==='chi-normal')f=f.filter(t=>t.type==='chi'&&t.budgetType!=='extra');else if(type==='chi-extra')f=f.filter(t=>t.type==='chi'&&t.budgetType==='extra');if(cat!=='all')f=f.filter(t=>t.cat===cat);if(month)f=f.filter(t=>t.date.slice(0,7)===month);const b=$('historyBody');if(!f.length){b.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px">Không có</td></tr>';return;}b.innerHTML=f.map(t=>`<tr><td style="color:var(--text2)">${fullDate(t.date)} ${timeStr(t.date)}</td><td><span class="badge ${t.type==='thu'?'badge-green':'badge-red'}">${t.type==='thu'?'Thu':t.budgetType==='extra'?'Chi ngoài':'Chi'}</span></td><td style="color:var(--text2)">${t.cat}</td><td>${t.note}</td><td style="text-align:right;font-weight:500" class="${t.type==='thu'?'val-green':'val-red'}">${t.type==='thu'?'+':'-'}${fmt(t.amount)}</td><td><span class="tx-del" onclick="deleteTx(${t.id})">✕</span></td></tr>`).join('');}
 
 /* ── STATS ── */
-function renderStats(){const last7=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return d.toISOString().slice(0,10);});const thuD=last7.map(d=>txData.filter(t=>t.type==='thu'&&t.date.slice(0,10)===d).reduce((s,t)=>s+t.amount,0));const chiD=last7.map(d=>txData.filter(t=>t.type==='chi'&&t.date.slice(0,10)===d).reduce((s,t)=>s+t.amount,0));const lab=last7.map(d=>{const dd=new Date(d+'T00:00');return dd.getDate()+'/'+(dd.getMonth()+1);});if(charts.week)charts.week.destroy();charts.week=new Chart($('weekChart'),{type:'bar',data:{labels:lab,datasets:[{label:'Thu',data:thuD,backgroundColor:'rgba(29,158,117,.7)',borderRadius:4},{label:'Chi',data:chiD,backgroundColor:'rgba(216,90,48,.7)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#888780',font:{size:10},boxWidth:8}}},scales:{x:{grid:{display:false},ticks:{color:'#555',font:{size:10}}},y:{grid:{color:'rgba(128,128,128,.1)'},ticks:{color:'#555',font:{size:10},callback:v=>fmtShort(v)}}}}});const ct=catsChi.map(c=>txData.filter(t=>t.cat===c.name).reduce((s,t)=>s+t.amount,0));if(charts.cat)charts.cat.destroy();charts.cat=new Chart($('catChart'),{type:'bar',data:{labels:catsChi.map(c=>c.emoji+' '+c.name),datasets:[{data:ct,backgroundColor:catsChi.map(c=>c.color),borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(128,128,128,.1)'},ticks:{color:'#555',font:{size:10},callback:v=>fmtShort(v)}},y:{grid:{display:false},ticks:{color:'#888780',font:{size:10}}}}}});const total=ct.reduce((s,v)=>s+v,0);$('catBreakdown').innerHTML=catsChi.map((c,i)=>{const pct=total>0?Math.round(ct[i]/total*100):0;return `<div class="stats-cat-row"><span>${c.emoji} ${c.name}</span><div style="flex:1;display:flex;align-items:center;gap:6px;margin:0 12px"><div class="cat-bar-wrap" style="flex:1"><div class="cat-bar" style="width:${pct}%;background:${c.color}"></div></div><span style="font-size:10px;color:var(--text2)">${pct}%</span></div><span style="font-weight:500;color:${c.color}">${fmt(ct[i])}</span></div>`;}).join('');$('statsPeriod').textContent='7 ngày + toàn bộ';}
+function renderStats(){const last7=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return d.toISOString().slice(0,10);});const thuD=last7.map(d=>txData.filter(t=>t.type==='thu'&&t.date.slice(0,10)===d).reduce((s,t)=>s+t.amount,0));const chiD=last7.map(d=>txData.filter(t=>t.type==='chi'&&t.date.slice(0,10)===d).reduce((s,t)=>s+t.amount,0));const lab=last7.map(d=>{const dd=new Date(d+'T00:00');return dd.getDate()+'/'+(dd.getMonth()+1);});if(charts.week)charts.week.destroy();charts.week=new Chart($('weekChart'),{type:'bar',data:{labels:lab,datasets:[{label:'Thu',data:thuD,backgroundColor:'rgba(29,158,117,.7)',borderRadius:4},{label:'Chi',data:chiD,backgroundColor:'rgba(216,90,48,.7)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#888780',font:{size:10},boxWidth:8}}},scales:{x:{grid:{display:false},ticks:{color:'#555',font:{size:10}}},y:{grid:{color:'rgba(128,128,128,.1)'},ticks:{color:'#555',font:{size:10},callback:v=>fmtShort(v)}}}}});const ct=catsChi.map(c=>txData.filter(t=>t.cat===c.name).reduce((s,t)=>s+t.amount,0));if(charts.cat)charts.cat.destroy();charts.cat=new Chart($('catChart'),{type:'bar',data:{labels:catsChi.map(c=>c.emoji+' '+c.name),datasets:[{data:ct,backgroundColor:catsChi.map(c=>c.color),borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(128,128,128,.1)'},ticks:{color:'#555',font:{size:10},callback:v=>fmtShort(v)}},y:{grid:{display:false},ticks:{color:'#888780',font:{size:10}}}}}});const total=ct.reduce((s,v)=>s+v,0);$('catBreakdown').innerHTML=catsChi.map((c,i)=>{const pct=total>0?Math.round(ct[i]/total*100):0;return `<div class="stats-cat-row"><span>${c.emoji} ${c.name}</span><div style="flex:1;display:flex;align-items:center;gap:6px;margin:0 12px"><div class="cat-bar-wrap" style="flex:1"><div class="cat-bar" style="width:${pct}%;background:${c.color}"></div></div><span style="font-size:10px;color:var(--text2)">${pct}%</span></div><span style="font-weight:500;color:${c.color}">${fmt(ct[i])}</span></div>`;}).join('');$('statsPeriod').textContent='7 ngày + toàn bộ';renderHeatmap();}
 
 /* ── BUDGET ── */
 function renderBudget(){const now=new Date();const m=now.getMonth(),y=now.getFullYear();const mTx=txData.filter(t=>{const d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y&&t.type==='chi';});$('budgetList').innerHTML=catsChi.map(c=>{const spent=mTx.filter(t=>t.cat===c.name).reduce((s,t)=>s+t.amount,0);const limit=budgets[c.name]||0;const pct=limit>0?Math.min(Math.round(spent/limit*100),100):0;const col=pct>90?'#D85A30':pct>70?'#BA7517':'#1D9E75';return `<div class="budget-item"><span>${c.emoji} ${c.name}</span><div class="budget-right"><span style="font-size:11px;color:var(--text2)">Chi: <b style="color:${col}">${fmt(spent)}</b></span><div class="budget-input-wrap"><input type="number" placeholder="Giới hạn..." value="${limit||''}" step="10000" onchange="budgets['${c.name}']=parseFloat(this.value)||0;saveBudgets();renderBudget()"/></div><span class="budget-pct" style="color:${col}">${limit>0?pct+'%':'-'}</span><div class="budget-bar-wrap"><div class="budget-bar" style="width:${pct}%;background:${col}"></div></div></div></div>`;}).join('');}
@@ -2196,6 +2223,184 @@ function hlOff(){
   }
 })();
 
+
+/* ────────────────────────────────────────────
+   COUNT-UP ANIMATION cho metrics
+──────────────────────────────────────────── */
+let _prevM=null,_animFrames={};
+const _mFmt={
+  assets:v=>fmt(v),
+  thu:v=>fmt(v),
+  chi:v=>fmt(v),
+  net:v=>(v>=0?'+':'')+fmt(v),
+  savings:v=>(v>=0?'':'−')+fmt(Math.abs(v))
+};
+function animMetrics(cur){
+  if(_prevM){
+    Object.keys(cur).forEach(k=>{
+      if(_prevM[k]===cur[k])return;
+      const card=document.querySelector(`#dashMetrics .metric[data-m="${k}"]`);
+      if(!card)return;
+      const el=card.querySelector('.val');
+      // pulse glow
+      card.classList.remove('pulse');void card.offsetWidth;card.classList.add('pulse');
+      // count-up 650ms ease-out
+      if(_animFrames[k])cancelAnimationFrame(_animFrames[k]);
+      const from=_prevM[k],to=cur[k],t0=performance.now(),dur=650;
+      const step=now=>{
+        const p=Math.min(1,(now-t0)/dur);
+        const e=1-Math.pow(1-p,3);
+        el.textContent=_mFmt[k](Math.round(from+(to-from)*e));
+        if(p<1)_animFrames[k]=requestAnimationFrame(step);
+      };
+      _animFrames[k]=requestAnimationFrame(step);
+    });
+  }
+  _prevM={...cur};
+}
+
+/* ────────────────────────────────────────────
+   PRIVACY MODE (👁 / phím H)
+──────────────────────────────────────────── */
+let privacyOn=localStorage.getItem('fin_privacy')==='1';
+function applyPrivacy(){
+  document.body.classList.toggle('privacy',privacyOn);
+  const b=$('privacyBtn');if(b)b.textContent=privacyOn?'🙈':'👁';
+}
+function togglePrivacy(){
+  playClick();
+  privacyOn=!privacyOn;
+  localStorage.setItem('fin_privacy',privacyOn?'1':'0');
+  applyPrivacy();
+  showToast(privacyOn?'Đã ẩn số tiền 🙈':'Đã hiện số tiền');
+}
+applyPrivacy();
+document.addEventListener('keydown',e=>{
+  if(e.key.toLowerCase()!=='h'||e.ctrlKey||e.metaKey||e.altKey)return;
+  const tag=(document.activeElement&&document.activeElement.tagName)||'';
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;
+  if($('calcOverlay').classList.contains('show'))return;
+  togglePrivacy();
+});
+
+/* ────────────────────────────────────────────
+   INSIGHTS tự động (local, không API)
+──────────────────────────────────────────── */
+function renderInsights(mTx){
+  const bar=$('insightBar');if(!bar)return;
+  const out=[];
+  const now=new Date();
+  const day=now.getDate();
+  // 1) So sánh chi cùng kỳ tháng trước (chi thường + ngoài, đến ngày hiện tại)
+  const prev=new Date(now.getFullYear(),now.getMonth()-1,1);
+  const prevKey=prev.getFullYear()+'-'+String(prev.getMonth()+1).padStart(2,'0');
+  const chiNow=mTx.filter(t=>t.type==='chi').reduce((s,t)=>s+t.amount,0);
+  const chiPrevSame=txData.filter(t=>{
+    if(t.type!=='chi')return false;
+    const d=new Date(t.date);
+    return t.date.slice(0,7)===prevKey&&d.getDate()<=day;
+  }).reduce((s,t)=>s+t.amount,0);
+  if(chiPrevSame>0&&chiNow>0){
+    const pct=Math.round((chiNow-chiPrevSame)/chiPrevSame*100);
+    if(pct<=-5)out.push(`📉 Chi tiêu <b>thấp hơn ${Math.abs(pct)}%</b> so với cùng kỳ tháng trước — tốt lắm!`);
+    else if(pct>=5)out.push(`📈 Chi tiêu <b>cao hơn ${pct}%</b> so với cùng kỳ tháng trước`);
+    else out.push(`⚖️ Chi tiêu ngang cùng kỳ tháng trước (±${Math.abs(pct)}%)`);
+  }
+  // 2) Danh mục tăng mạnh nhất vs tháng trước (theo ngày)
+  if(chiPrevSame>0){
+    let worst=null;
+    catsChi.forEach(c=>{
+      const a=mTx.filter(t=>t.type==='chi'&&t.cat===c.name).reduce((s,t)=>s+t.amount,0);
+      const b=txData.filter(t=>{if(t.type!=='chi'||t.cat!==c.name)return false;const d=new Date(t.date);return t.date.slice(0,7)===prevKey&&d.getDate()<=day;}).reduce((s,t)=>s+t.amount,0);
+      if(b>200000&&a>b*1.3){const pct=Math.round((a-b)/b*100);if(!worst||pct>worst.pct)worst={name:c.emoji+' '+c.name,pct};}
+    });
+    if(worst)out.push(`🔍 <b>${worst.name}</b> tăng ${worst.pct}% so với tháng trước`);
+  }
+  // 3) Chuỗi ngày không chi ngoài
+  let streak=0;
+  for(let i=0;i<60;i++){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const key=d.toISOString().slice(0,10);
+    const hasExtra=txData.some(t=>t.type==='chi'&&t.budgetType==='extra'&&t.date.slice(0,10)===key);
+    if(hasExtra)break;
+    streak++;
+  }
+  if(streak>=3)out.push(`🔥 <b>${streak} ngày</b> liên tiếp không chi ngoài`);
+  // 4) Ngày chi nhiều nhất tháng
+  if(mTx.some(t=>t.type==='chi')){
+    const byDay={};
+    mTx.filter(t=>t.type==='chi').forEach(t=>{const k=t.date.slice(0,10);byDay[k]=(byDay[k]||0)+t.amount;});
+    const top=Object.entries(byDay).sort((a,b)=>b[1]-a[1])[0];
+    if(top&&Object.keys(byDay).length>=5){
+      const d=new Date(top[0]+'T00:00');
+      out.push(`💸 Chi nhiều nhất: <b>${d.getDate()}/${d.getMonth()+1}</b> (${fmt(top[1])})`);
+    }
+  }
+  if(!out.length){bar.style.display='none';return;}
+  bar.style.display='';
+  bar.innerHTML=out.slice(0,3).map((s,i)=>`<div class="insight-chip" style="animation-delay:${i*0.08}s">${s}</div>`).join('');
+}
+
+/* ────────────────────────────────────────────
+   HEATMAP CHI TIÊU (18 tuần, kiểu GitHub)
+──────────────────────────────────────────── */
+function renderHeatmap(){
+  const wrap=$('hmWrap');if(!wrap)return;
+  const WEEKS=18;
+  // Gom chi theo ngày
+  const byDay={};
+  txData.filter(t=>t.type==='chi').forEach(t=>{const k=t.date.slice(0,10);byDay[k]=(byDay[k]||0)+t.amount;});
+  // Mốc màu theo phân vị của các ngày có chi
+  const vals=Object.values(byDay).sort((a,b)=>a-b);
+  const q=p=>vals.length?vals[Math.min(vals.length-1,Math.floor(vals.length*p))]:0;
+  const t1=q(.25),t2=q(.5),t3=q(.8);
+  const colOf=v=>!v?'var(--bg3)':v<=t1?'rgba(232,180,74,.25)':v<=t2?'rgba(232,180,74,.55)':v<=t3?'rgba(216,90,48,.75)':'#d85a30';
+  // Bắt đầu từ thứ 2 của tuần (WEEKS-1) tuần trước
+  const today=new Date();today.setHours(0,0,0,0);
+  const start=new Date(today);
+  start.setDate(start.getDate()-start.getDay()+1-(WEEKS-1)*7); // thứ 2
+  if(start>today)start.setDate(start.getDate()-7);
+  let html='<div class="hm-days"><span>T2</span><span></span><span>T4</span><span></span><span>T6</span><span></span><span>CN</span></div><div class="hm-grid">';
+  const d=new Date(start);
+  let lastMonth=-1;
+  for(let w=0;w<WEEKS;w++){
+    let mLabel='';
+    if(d.getMonth()!==lastMonth){lastMonth=d.getMonth();mLabel='T'+(d.getMonth()+1);}
+    html+=`<div class="hm-col"><div class="hm-month">${mLabel}</div>`;
+    for(let i=0;i<7;i++){
+      if(d>today){html+='<div class="hm-cell" style="opacity:.25"></div>';}
+      else{
+        const k=d.toISOString().slice(0,10);
+        const v=byDay[k]||0;
+        html+=`<div class="hm-cell" style="background:${colOf(v)}" title="${d.getDate()}/${d.getMonth()+1}: ${v?fmt(v):'không chi'}"></div>`;
+      }
+      d.setDate(d.getDate()+1);
+    }
+    html+='</div>';
+  }
+  html+='</div>';
+  wrap.innerHTML=html;
+}
+
+/* ────────────────────────────────────────────
+   FOMC COUNTDOWN CHIP (trang Thống kê)
+──────────────────────────────────────────── */
+function renderFomcChip(){
+  const chip=$('fomcChip');if(!chip||typeof GOLD_EVENTS==='undefined')return;
+  const now=Date.now();
+  const next=GOLD_EVENTS.filter(e=>e.type==='FOMC'&&new Date(e.t).getTime()>now)
+    .sort((a,b)=>new Date(a.t)-new Date(b.t))[0];
+  if(!next){chip.style.display='none';return;}
+  const ts=new Date(next.t).getTime();
+  const days=Math.floor((ts-now)/86400000);
+  const hrs=Math.floor(((ts-now)%86400000)/3600000);
+  chip.innerHTML='🥇 FOMC '+(days>0?`còn ${days}d`:`còn ${hrs}h ⚡`)+(next.sep?' ★':'');
+  chip.style.display='';
+  if(days<=3)chip.style.borderColor='rgba(216,90,48,.6)';
+}
+
+
+renderFomcChip();setInterval(renderFomcChip,3600*1000);
 </script>
 <div class="calc-overlay" id="calcOverlay" onclick="if(event.target===this)closeCalc()">
   <div class="calc-box">
