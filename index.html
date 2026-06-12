@@ -373,7 +373,7 @@ html{scroll-behavior:smooth;}
   <div class="nav-item" data-page="invest" onclick="showPage('invest')"><span class="nav-emoji" style="color:#1D9E75">📈</span><span>Đầu tư</span></div>
   <div class="nav-item" data-page="tragop" onclick="showPage('tragop')"><span class="nav-emoji" style="color:#F0B429">💰</span><span>Trả Góp</span></div>
   <div class="nav-item" data-page="history" onclick="showPage('history')"><span class="nav-emoji" style="color:#3AAFA9">📋</span><span>Lịch sử</span></div>
-  <div class="nav-item" data-page="stats" onclick="showPage('stats')"><span class="nav-emoji" style="color:#6366F1">📉</span><span>Biểu đồ</span></div>
+  <div class="nav-item" data-page="gold" onclick="showPage('gold')"><span class="nav-emoji" style="color:#E8B44A">🥇</span><span>Vàng</span></div><div class="nav-item" data-page="stats" onclick="showPage('stats')"><span class="nav-emoji" style="color:#6366F1">📉</span><span>Biểu đồ</span></div>
   <div class="nav-item" data-page="budget" onclick="showPage('budget')"><span class="nav-emoji" style="color:#D85A30">🎯</span><span>Ngân sách</span></div>
   <div class="nav-item" data-page="settings" onclick="showPage('settings')"><span class="nav-emoji" style="color:#888780">⚙️</span><span>Cài đặt</span></div>
   <div class="sidebar-bottom"><div class="opening-mini"><label>Số dư đầu kỳ (₫)</label><input type="number" id="openingBal" placeholder="0" step="1000" oninput="saveOpening();updateAll()"/></div></div>
@@ -382,7 +382,7 @@ html{scroll-behavior:smooth;}
 <div class="mobile-nav">
   <button class="mob-nav-btn active" data-page="dashboard" onclick="showPage('dashboard')"><span style="font-size:16px">📊</span>T.Kê</button>
   <button class="mob-nav-btn" data-page="accounts" onclick="showPage('accounts')"><span style="font-size:16px">💳</span>TK</button>
-  <button class="mob-nav-btn" data-page="invest" onclick="showPage('invest')"><span style="font-size:16px">📈</span>ĐT</button>
+  <button class="mob-nav-btn" data-page="invest" onclick="showPage('invest')"><span style="font-size:16px">📈</span>ĐT</button><button class="mob-nav-btn" data-page="gold" onclick="showPage('gold')"><span style="font-size:16px">🥇</span>Vàng</button>
   <button class="mob-nav-btn" data-page="tragop" onclick="showPage('tragop')"><span style="font-size:16px">💰</span>Góp</button>
   <button class="mob-nav-btn" data-page="history" onclick="showPage('history')"><span style="font-size:16px">📋</span>Sử</button>
   <button class="mob-nav-btn" data-page="settings" onclick="showPage('settings')"><span style="font-size:16px">⚙️</span>⚙</button>
@@ -487,6 +487,38 @@ html{scroll-behavior:smooth;}
 </div>
 
 <!-- STATS -->
+<div id="page-gold" class="page">
+  <div class="topbar"><div class="topbar-left"><h1>🥇 Vàng</h1><div class="sub" id="goldUpdated">Đang tải...</div></div><div class="topbar-actions"><button class="btn" onclick="loadGold(true)">↻ Làm mới</button></div></div>
+
+  <div class="metrics" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
+    <div class="metric-card"><div class="metric-lbl">🌍 Vàng thế giới (oz)</div><div class="metric-val" id="gWorldUsd">—</div><div class="metric-sub" id="gWorldChange">XAU/USD</div></div>
+    <div class="metric-card"><div class="metric-lbl">🔄 Quy đổi (lượng)</div><div class="metric-val" id="gWorldVnd" style="font-size:16px;">—</div><div class="metric-sub" id="gUsdVnd">Theo tỷ giá USD/VND</div></div>
+    <div class="metric-card"><div class="metric-lbl">🇻🇳 SJC bán ra (lượng)</div><div class="metric-val" id="gSjcSell" style="font-size:16px;">—</div><div class="metric-sub" id="gSjcBuy">Mua vào: —</div></div>
+    <div class="metric-card"><div class="metric-lbl">⚖️ Chênh SJC vs TG</div><div class="metric-val" id="gPremium" style="font-size:16px;">—</div><div class="metric-sub" id="gPremiumPct">SJC bán − quy đổi</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px;">
+    <div class="card-title" style="color:var(--accent2);">📋 Giá vàng trong nước (VND/lượng)</div>
+    <div id="gDomesticTable" style="font-size:11px;color:var(--text3);">Đang tải...</div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div class="card-title" style="margin:0;color:var(--accent2);">📈 Biểu đồ 30 ngày</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn gchart-btn" id="gcBtnWorld" onclick="switchGoldChart('world')" style="font-size:10px;padding:4px 10px;">Thế giới</button>
+        <button class="btn gchart-btn" id="gcBtnSjc" onclick="switchGoldChart('sjc')" style="font-size:10px;padding:4px 10px;">SJC</button>
+      </div>
+    </div>
+    <div style="height:220px;"><canvas id="goldChart"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="color:var(--accent2);">📅 Lịch sự kiện sắp tới (giờ Việt Nam)</div>
+    <div style="font-size:9px;color:var(--text3);margin-bottom:10px;">FOMC = quyết định lãi suất Fed · CPI = lạm phát Mỹ · NFP = bảng lương phi nông nghiệp Mỹ. Lãi suất giảm / lạm phát cao → thường TỐT cho vàng 🟢</div>
+    <div id="gEventList"></div>
+  </div>
+</div>
 <div id="page-stats" class="page">
   <div class="topbar"><div class="topbar-left"><h1>📉 Biểu đồ</h1><div class="sub" id="statsPeriod"></div></div></div>
   <div class="stats-grid">
@@ -675,7 +707,7 @@ function setTheme(t){theme=t;document.body.setAttribute('data-theme',t);localSto
 function showToast(msg,ok=true){const t=$('toast');t.textContent=(ok?'✓ ':'✗ ')+msg;t.style.borderColor=ok?'rgba(29,158,117,.4)':'rgba(216,90,48,.4)';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 
 /* ── NAV ── */
-function showPage(p){playClick();document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));$('page-'+p).classList.add('active');document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.page===p));document.querySelectorAll('.mob-nav-btn').forEach(el=>el.classList.toggle('active',el.dataset.page===p));if(p==='accounts')renderAccounts();if(p==='history')renderHistory();if(p==='stats')renderStats();if(p==='budget')renderBudget();if(p==='invest')renderInvest();if(p==='settings')renderSettings();if(p==='tragop')renderTragop();}
+function showPage(p){playClick();document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));$('page-'+p).classList.add('active');document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.page===p));document.querySelectorAll('.mob-nav-btn').forEach(el=>el.classList.toggle('active',el.dataset.page===p));if(p==='accounts')renderAccounts();if(p==='history')renderHistory();if(p==='stats')renderStats();if(p==='budget')renderBudget();if(p==='invest')renderInvest();if(p==='settings')renderSettings();if(p==='tragop')renderTragop();if(p==='gold')initGoldPage();}
 
 /* ── MONTH ── */
 function changeMonth(d){viewMonth+=d;if(viewMonth>11){viewMonth=0;viewYear++;}if(viewMonth<0){viewMonth=11;viewYear--;}updateAll();}
@@ -1853,6 +1885,204 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Backspace'){e.preventDefault();calcKey('back');return;}
   if(e.key.toLowerCase()==='c'&&!e.ctrlKey&&!e.metaKey){e.preventDefault();calcKey('C');return;}
 });
+
+
+/* ────────────────────────────────────────────
+   GOLD DASHBOARD — vàng thế giới + trong nước + lịch sự kiện
+   Nguồn: api.gold-api.com (XAU realtime, CORS, free)
+          vang.today/api/prices (SJC/PNJ/DOJI + lịch sử 30d, CORS, free)
+          open.er-api.com (tỷ giá USD/VND, free)
+──────────────────────────────────────────── */
+const LUONG_PER_OZ = 37.5/31.1034768; // 1 lượng = 37.5g, 1 troy oz = 31.1035g
+let _goldInited=false, _goldTimer=null, _usdVnd=0, _xauUsd=0;
+let _goldChartObj=null, _goldChartMode='world';
+let _goldHist={world:null,sjc:null};
+
+function initGoldPage(){
+  if(!_goldInited){_goldInited=true;loadGold();}
+  if(_goldTimer)clearInterval(_goldTimer);
+  _goldTimer=setInterval(()=>{if($('page-gold').classList.contains('active'))loadGold();},5*60*1000);
+  renderGoldEvents();
+}
+
+async function loadGold(manual){
+  if(manual)showToast('Đang tải giá vàng...');
+  $('goldUpdated').textContent='Đang tải...';
+  // 1) Tỷ giá USD/VND
+  try{
+    const r=await fetch('https://open.er-api.com/v6/latest/USD').then(x=>x.json());
+    if(r&&r.rates&&r.rates.VND)_usdVnd=r.rates.VND;
+  }catch(e){}
+  if(!_usdVnd)_usdVnd=26500; // fallback
+  // 2) Vàng thế giới realtime
+  try{
+    const g=await fetch('https://api.gold-api.com/price/XAU').then(x=>x.json());
+    if(g&&g.price)_xauUsd=g.price;
+  }catch(e){}
+  // 3) Vàng trong nước
+  let domestic=null;
+  try{
+    const v=await fetch('https://www.vang.today/api/prices').then(x=>x.json());
+    if(v&&v.success&&v.data)domestic=v.data;
+    // fallback XAU nếu gold-api lỗi
+    if(!_xauUsd&&domestic){const w=domestic.find(d=>d.type_code==='XAUUSD');if(w)_xauUsd=w.sell||w.buy;}
+  }catch(e){}
+  renderGoldPrices(domestic);
+  loadGoldHistory();
+}
+
+function fmtTr(v){ // hiển thị triệu đồng gọn: 120,5tr
+  return (v/1e6).toLocaleString('vi-VN',{maximumFractionDigits:1})+'tr';
+}
+
+function renderGoldPrices(domestic){
+  const worldVndLuong=_xauUsd?_xauUsd*_usdVnd*LUONG_PER_OZ:0;
+  $('gWorldUsd').textContent=_xauUsd?'$'+_xauUsd.toLocaleString('en-US',{maximumFractionDigits:1}):'Lỗi tải';
+  $('gWorldVnd').textContent=worldVndLuong?fmt(Math.round(worldVndLuong)):'—';
+  $('gUsdVnd').textContent='Tỷ giá: '+_usdVnd.toLocaleString('vi-VN')+' ₫/USD';
+
+  let sjc=null;
+  if(domestic){
+    sjc=domestic.find(d=>d.type_code==='SJL1L10');
+    const rows=[
+      ['SJL1L10','SJC vàng miếng'],['SJ9999','SJC nhẫn 9999'],
+      ['DOHCML','DOJI HCM'],['PQHN24NTT','PNJ 24K'],['BT9999NTT','Bảo Tín 9999']
+    ];
+    let html='<table style="width:100%;border-collapse:collapse;">';
+    html+='<tr style="color:var(--text3);font-size:9px;text-align:right;"><td style="text-align:left;padding:4px 0;">LOẠI</td><td>MUA VÀO</td><td>BÁN RA</td><td>Δ</td></tr>';
+    let shown=0;
+    rows.forEach(([code,label])=>{
+      const d=domestic.find(x=>x.type_code===code);
+      if(!d||!d.sell)return;
+      shown++;
+      const ch=d.change_sell||0;
+      const chColor=ch>0?'#1d9e75':ch<0?'#d85a30':'var(--text3)';
+      const chTxt=ch?((ch>0?'+':'')+(ch/1000).toLocaleString('vi-VN')+'k'):'—';
+      html+=`<tr style="border-top:.5px solid var(--border);font-family:'JetBrains Mono',monospace;text-align:right;">
+        <td style="text-align:left;padding:7px 0;font-family:inherit;color:var(--text2);">${label}</td>
+        <td style="color:var(--text2);">${fmt(d.buy)}</td>
+        <td style="color:var(--text);font-weight:700;">${fmt(d.sell)}</td>
+        <td style="color:${chColor};font-size:10px;">${chTxt}</td></tr>`;
+    });
+    html+='</table>';
+    $('gDomesticTable').innerHTML=shown?html:'<span style="color:var(--amber)">Nguồn vang.today tạm lỗi — thử Làm mới sau ít phút</span>';
+  }else{
+    $('gDomesticTable').innerHTML='<span style="color:var(--amber)">Không tải được giá trong nước (vang.today) — kiểm tra mạng rồi nhấn Làm mới</span>';
+  }
+
+  if(sjc&&sjc.sell){
+    $('gSjcSell').textContent=fmt(sjc.sell);
+    $('gSjcBuy').textContent='Mua vào: '+fmt(sjc.buy);
+    if(worldVndLuong){
+      const prem=sjc.sell-worldVndLuong;
+      $('gPremium').textContent=(prem>=0?'+':'−')+fmt(Math.abs(Math.round(prem)));
+      $('gPremium').style.color=prem>5e6?'#d85a30':prem>2e6?'var(--amber)':'#1d9e75';
+      $('gPremiumPct').textContent='= '+((prem/worldVndLuong)*100).toFixed(1)+'% so với thế giới';
+    }
+  }else{
+    $('gSjcSell').textContent='—';$('gPremium').textContent='—';
+  }
+  $('goldUpdated').textContent='Cập nhật '+new Date().toLocaleTimeString('vi-VN')+' · tự làm mới mỗi 5 phút';
+}
+
+async function loadGoldHistory(){
+  try{
+    const [w,s]=await Promise.all([
+      fetch('https://www.vang.today/api/prices?type=XAUUSD&days=30').then(x=>x.json()).catch(()=>null),
+      fetch('https://www.vang.today/api/prices?type=SJL1L10&days=30').then(x=>x.json()).catch(()=>null)
+    ]);
+    _goldHist.world=(w&&w.success&&Array.isArray(w.data))?w.data:null;
+    _goldHist.sjc=(s&&s.success&&Array.isArray(s.data))?s.data:null;
+  }catch(e){}
+  drawGoldChart();
+}
+
+function switchGoldChart(mode){playClick();_goldChartMode=mode;drawGoldChart();}
+
+function drawGoldChart(){
+  const isW=_goldChartMode==='world';
+  $('gcBtnWorld').style.borderColor=isW?'var(--accent)':'var(--border)';
+  $('gcBtnWorld').style.color=isW?'var(--accent)':'var(--text2)';
+  $('gcBtnSjc').style.borderColor=!isW?'var(--accent)':'var(--border)';
+  $('gcBtnSjc').style.color=!isW?'var(--accent)':'var(--text2)';
+  const hist=isW?_goldHist.world:_goldHist.sjc;
+  const ctx=$('goldChart');if(!ctx)return;
+  if(_goldChartObj){_goldChartObj.destroy();_goldChartObj=null;}
+  if(!hist||!hist.length){return;}
+  const pts=hist.slice().sort((a,b)=>(a.update_time||0)-(b.update_time||0));
+  const labels=pts.map(p=>new Date((p.update_time||0)*1000).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'}));
+  const vals=pts.map(p=>p.sell||p.buy||0);
+  const up=vals[vals.length-1]>=vals[0];
+  const col=up?'#1d9e75':'#d85a30';
+  _goldChartObj=new Chart(ctx,{type:'line',data:{labels,datasets:[{
+    data:vals,borderColor:col,borderWidth:2,pointRadius:0,tension:.3,fill:true,
+    backgroundColor:(c)=>{const g=c.chart.ctx.createLinearGradient(0,0,0,220);g.addColorStop(0,col+'33');g.addColorStop(1,col+'00');return g;}
+  }]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>isW?('$'+c.parsed.y.toLocaleString('en-US')):fmt(c.parsed.y)}}},
+  scales:{x:{ticks:{color:'#8a8578',font:{size:8},maxTicksLimit:8},grid:{display:false}},
+  y:{ticks:{color:'#8a8578',font:{size:8},callback:v=>isW?('$'+v.toLocaleString('en-US')):fmtTr(v)},grid:{color:'rgba(138,133,120,.08)'}}}}});
+}
+
+/* ── LỊCH SỰ KIỆN (giờ UTC, render giờ VN) ──
+   FOMC 2026: lịch chính thức Fed (statement 14:00 ET ngày 2)
+   CPI: lịch BLS (8:30 ET) — 3 kỳ tới đã xác nhận, sau đó dự kiến
+   NFP: thứ Sáu đầu tháng 8:30 ET (dự kiến)                       */
+const GOLD_EVENTS=[
+  {t:'2026-01-28T19:00:00Z',type:'FOMC',name:'Fed quyết định lãi suất',sep:false},
+  {t:'2026-03-18T18:00:00Z',type:'FOMC',name:'Fed quyết định lãi suất + Dot Plot',sep:true},
+  {t:'2026-04-29T18:00:00Z',type:'FOMC',name:'Fed quyết định lãi suất',sep:false},
+  {t:'2026-06-17T18:00:00Z',type:'FOMC',name:'Fed quyết định lãi suất + Dot Plot',sep:true},
+  {t:'2026-07-29T18:00:00Z',type:'FOMC',name:'Fed quyết định lãi suất',sep:false},
+  {t:'2026-09-16T18:00:00Z',type:'FOMC',name:'Fed quyết định lãi suất + Dot Plot',sep:true},
+  {t:'2026-10-28T18:00:00Z',type:'FOMC',name:'Fed quyết định lãi suất',sep:false},
+  {t:'2026-12-09T19:00:00Z',type:'FOMC',name:'Fed quyết định lãi suất + Dot Plot',sep:true},
+  {t:'2026-06-10T12:30:00Z',type:'CPI',name:'CPI Mỹ tháng 5'},
+  {t:'2026-07-14T12:30:00Z',type:'CPI',name:'CPI Mỹ tháng 6'},
+  {t:'2026-08-12T12:30:00Z',type:'CPI',name:'CPI Mỹ tháng 7'},
+  {t:'2026-09-11T12:30:00Z',type:'CPI',name:'CPI Mỹ tháng 8',est:true},
+  {t:'2026-10-13T12:30:00Z',type:'CPI',name:'CPI Mỹ tháng 9',est:true},
+  {t:'2026-11-12T13:30:00Z',type:'CPI',name:'CPI Mỹ tháng 10',est:true},
+  {t:'2026-12-10T13:30:00Z',type:'CPI',name:'CPI Mỹ tháng 11',est:true},
+];
+// NFP: thứ Sáu đầu tiên mỗi tháng, 8:30 ET
+function nfpEvents(){
+  const out=[];const now=new Date();
+  for(let m=0;m<14;m++){
+    const d=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()+m,1));
+    while(d.getUTCDay()!==5)d.setUTCDate(d.getUTCDate()+1);
+    // 8:30 ET: EDT (T3–T10)=12:30Z, EST=13:30Z (xấp xỉ theo tháng)
+    const mo=d.getUTCMonth()+1;const h=(mo>=4&&mo<=10)?12:13;
+    d.setUTCHours(h,30,0,0);
+    out.push({t:d.toISOString(),type:'NFP',name:'Bảng lương phi nông nghiệp Mỹ',est:true});
+  }
+  return out;
+}
+
+function renderGoldEvents(){
+  const el=$('gEventList');if(!el)return;
+  const now=Date.now();
+  const evs=GOLD_EVENTS.concat(nfpEvents())
+    .map(e=>({...e,ts:new Date(e.t).getTime()}))
+    .filter(e=>e.ts>now-2*3600*1000)
+    .sort((a,b)=>a.ts-b.ts)
+    .slice(0,10);
+  const colors={FOMC:'#d85a30',CPI:'#E8B44A',NFP:'#4A9EF5'};
+  el.innerHTML=evs.map(e=>{
+    const d=new Date(e.ts);
+    const days=Math.floor((e.ts-now)/86400000);
+    const hrs=Math.floor(((e.ts-now)%86400000)/3600000);
+    const cd=e.ts<now?'<span style="color:#d85a30;font-weight:700;">ĐANG DIỄN RA</span>':
+      days>0?`còn <b>${days} ngày</b>`:`còn <b>${hrs} giờ</b> ⚡`;
+    const soon=days<=3&&e.ts>now;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:.5px solid var(--border);${soon?'background:linear-gradient(90deg,rgba(216,90,48,.06),transparent);border-radius:6px;padding-left:6px;':''}">
+      <span style="background:${colors[e.type]}22;color:${colors[e.type]};border:.5px solid ${colors[e.type]}55;border-radius:6px;font-size:9px;font-weight:700;padding:3px 8px;flex-shrink:0;letter-spacing:.5px;">${e.type}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:11px;color:var(--text);">${e.name}${e.sep?' <span style="color:var(--amber);font-size:9px;">★ quan trọng</span>':''}${e.est?' <span style="color:var(--text3);font-size:8px;">(dự kiến)</span>':''}</div>
+        <div style="font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;">${d.toLocaleDateString('vi-VN',{weekday:'short',day:'2-digit',month:'2-digit'})} · ${d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})} VN</div>
+      </div>
+      <div style="font-size:10px;color:var(--text2);flex-shrink:0;">${cd}</div>
+    </div>`;
+  }).join('');
+}
 
 </script>
 <div class="calc-overlay" id="calcOverlay" onclick="if(event.target===this)closeCalc()">
