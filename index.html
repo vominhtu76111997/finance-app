@@ -331,6 +331,11 @@ html{scroll-behavior:smooth;}
 .card,.metric,.page{transform:translateZ(0);will-change:auto;}
 
 
+/* ── HIGHLIGHT LIÊN KẾT KHI HOVER FORM NHẬP ── */
+#dashMetrics .metric,#monthMoneyCard{transition:opacity .28s ease,box-shadow .28s ease,transform .28s ease,border-color .28s ease;}
+.hl-glow{box-shadow:0 0 0 1px var(--hl,#E8B44A),0 0 26px -4px var(--hl,#E8B44A) !important;border-color:var(--hl,#E8B44A) !important;transform:translateY(-3px);opacity:1 !important;position:relative;z-index:2;}
+.hl-dim{opacity:.35;}
+
 /* ── CALCULATOR POPUP ── */
 .calc-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s ease;}
 .calc-overlay.show{opacity:1;pointer-events:auto;}
@@ -421,7 +426,7 @@ html{scroll-behavior:smooth;}
     <div id="monthMoneyResult"></div>
   </div>
   <div class="entry-row">
-    <div class="card">
+    <div class="card" id="thuFormCard">
       <div class="card-title green">↗ Thêm khoản thu</div>
       <div class="quick-row" id="quickThuRow"></div>
       <div class="field"><label>Danh mục thu</label><select id="thuCat"></select></div>
@@ -831,11 +836,11 @@ function updateAll(){
   const net=thu-chi;
   $('monthLabel').textContent=monthLabel();
   $('dashMetrics').innerHTML=`
-    <div class="metric"><div class="label">Tổng tài sản</div><div class="val ${sodu+accTotal>=0?'val-white':'val-red'}">${fmt(sodu+accTotal)}</div><div class="sub-val">Số dư + Tài khoản + Đầu tư</div></div>
-    <div class="metric"><div class="label">Thu tháng</div><div class="val val-green">${fmt(thu)}</div><div class="sub-val">${mTx.filter(t=>t.type==='thu').length} giao dịch</div></div>
-    <div class="metric"><div class="label">Chi tháng</div><div class="val val-red">${fmt(chi)}</div><div class="sub-val">${mTx.filter(t=>t.type==='chi').length} giao dịch</div></div>
-    <div class="metric"><div class="label">Ròng</div><div class="val ${net>=0?'val-green':'val-red'}">${net>=0?'+':''}${fmt(net)}</div><div class="sub-val">${net>=0?'Thặng dư':'Thâm hụt'}</div></div>
-    <div class="metric"><div class="label">Tiết kiệm</div><div class="val ${getSavings()>=0?'val-green':'val-red'}">${getSavings()>=0?'':'−'}${fmt(Math.abs(getSavings()))}</div><div class="sub-val">${monthMoneyData?'Tổng tài sản − tiền dùng còn lại':'Chưa đặt tiền dùng trong tháng'}</div></div>`;
+    <div class="metric" data-m="assets"><div class="label">Tổng tài sản</div><div class="val ${sodu+accTotal>=0?'val-white':'val-red'}">${fmt(sodu+accTotal)}</div><div class="sub-val">Số dư + Tài khoản + Đầu tư</div></div>
+    <div class="metric" data-m="thu"><div class="label">Thu tháng</div><div class="val val-green">${fmt(thu)}</div><div class="sub-val">${mTx.filter(t=>t.type==='thu').length} giao dịch</div></div>
+    <div class="metric" data-m="chi"><div class="label">Chi tháng</div><div class="val val-red">${fmt(chi)}</div><div class="sub-val">${mTx.filter(t=>t.type==='chi').length} giao dịch</div></div>
+    <div class="metric" data-m="net"><div class="label">Ròng</div><div class="val ${net>=0?'val-green':'val-red'}">${net>=0?'+':''}${fmt(net)}</div><div class="sub-val">${net>=0?'Thặng dư':'Thâm hụt'}</div></div>
+    <div class="metric" data-m="savings"><div class="label">Tiết kiệm</div><div class="val ${getSavings()>=0?'val-green':'val-red'}">${getSavings()>=0?'':'−'}${fmt(Math.abs(getSavings()))}</div><div class="sub-val">${monthMoneyData?'Tổng tài sản − tiền dùng còn lại':'Chưa đặt tiền dùng trong tháng'}</div></div>`;
   renderMonthList(mTx);renderMonthChart(mTx);renderMonthMoney();
 }
 
@@ -2140,6 +2145,56 @@ function renderGoldEvents(){
     </div>`;
   }).join('');
 }
+
+
+/* ────────────────────────────────────────────
+   HIGHLIGHT LIÊN KẾT: hover form nhập → sáng các ô bị tác động
+──────────────────────────────────────────── */
+const HL_MAPS={
+  normal:['assets','chi','net','mm'],          // chi thường: tài sản↓, chi↑, ròng, tiền dùng tháng↓ (tiết kiệm KHÔNG đổi)
+  extra:['assets','chi','net','savings'],      // chi ngoài: tài sản↓, chi↑, ròng, tiết kiệm↓
+  thu:['assets','thu','net','savings']         // thu nhập: tài sản↑, thu↑, ròng, tiết kiệm↑
+};
+const HL_COLORS={normal:'#E8B44A',extra:'#d85a30',thu:'#1d9e75'};
+
+function hlOn(kind){
+  const keys=HL_MAPS[kind];if(!keys)return;
+  const col=HL_COLORS[kind];
+  const targets=[...document.querySelectorAll('#dashMetrics .metric')];
+  const mm=$('monthMoneyCard');
+  targets.forEach(el=>{
+    const hit=keys.includes(el.dataset.m);
+    el.style.setProperty('--hl',col);
+    el.classList.toggle('hl-glow',hit);
+    el.classList.toggle('hl-dim',!hit);
+  });
+  if(mm){
+    const hit=keys.includes('mm');
+    mm.style.setProperty('--hl',col);
+    mm.classList.toggle('hl-glow',hit);
+    mm.classList.toggle('hl-dim',!hit);
+  }
+}
+function hlOff(){
+  document.querySelectorAll('.hl-glow,.hl-dim').forEach(el=>{el.classList.remove('hl-glow','hl-dim');});
+}
+
+(function initHoverLinks(){
+  const thuCard=$('thuFormCard'),chiCard=$('chiFormCard');
+  if(thuCard){
+    thuCard.addEventListener('mouseenter',()=>hlOn('thu'));
+    thuCard.addEventListener('mouseleave',hlOff);
+  }
+  if(chiCard){
+    chiCard.addEventListener('mouseenter',()=>hlOn(chiType||'normal'));
+    chiCard.addEventListener('mouseleave',hlOff);
+    // Nút chi thường / chi ngoài: preview mapping riêng khi hover từng nút
+    chiCard.querySelectorAll('.chi-type-btn').forEach(btn=>{
+      btn.addEventListener('mouseenter',e=>{e.stopPropagation();hlOn(btn.dataset.val);});
+      btn.addEventListener('mouseleave',()=>hlOn(chiType||'normal'));
+    });
+  }
+})();
 
 </script>
 <div class="calc-overlay" id="calcOverlay" onclick="if(event.target===this)closeCalc()">
