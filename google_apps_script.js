@@ -1,6 +1,16 @@
 // ============================================================
-// FINANCE TRACKER — Google Apps Script v8
+// FINANCE TRACKER — Google Apps Script v9
 // ============================================================
+// THAY ĐỔI TỪ V8:
+// - FIX sync nhiều thiết bị: weekBudget (tiền dùng tháng) & installments
+//   (trả góp) giờ LUÔN dùng last-write-wins theo timestamp ở MỌI đường ghi
+//   (saveSettings / pushAll / action xác nhận) → không còn cảnh dữ liệu cũ
+//   từ máy mở sau đè lên dữ liệu mới.
+// - Thêm action GET "saveInstallments" (JSONP CÓ PHẢN HỒI) + cột thời gian
+//   installments_ts. getAll trả thêm installmentsTs để client so sánh.
+// - weekBudget khi đi qua saveSettings/pushAll được kiểm tra createdAt
+//   (storeWeekBudgetGuarded), bỏ qua chuỗi "null" để không xóa nhầm.
+//
 // THAY ĐỔI TỪ V7:
 // - Thêm action GET "saveMonthMoney": lưu tiền dùng trong tháng
 //   qua JSONP CÓ PHẢN HỒI XÁC NHẬN (fix lỗi mất dữ liệu do POST
@@ -136,9 +146,46 @@ function getAllData() {
     budgets: parseSetting('budgets', null),
     weekBudget: parseSetting('weekBudget', null),
     installments: parseSetting('installments', null),
+    installmentsTs: getSetting('installments_ts'),
     budgetTypeMap: parseSetting('budgetTypeMap', null),
     accounts: parseSetting('accounts', null)
   };
+}
+
+// V9: ghi weekBudget có kiểm tra thời gian (createdAt) — không cho dữ liệu cũ đè mới
+function storeWeekBudgetGuarded(val) {
+  if (val === undefined || val === null) return; // xóa đi qua action saveMonthMoney, không qua đây
+  var obj = val;
+  if (typeof obj === 'string') {
+    if (obj === 'null') return; // bỏ qua "null" từ saveSettings để tránh xóa nhầm
+    try { obj = JSON.parse(obj); } catch (e) { return; }
+  }
+  if (!obj || typeof obj !== 'object') return;
+  var cur = parseSetting('weekBudget', null);
+  var curT = cur && cur.createdAt ? new Date(cur.createdAt).getTime() : 0;
+  var newT = obj.createdAt ? new Date(obj.createdAt).getTime() : 0;
+  if (newT >= curT) setSetting('weekBudget', obj);
+}
+
+// V9: ghi installments có kiểm tra thời gian — last-write-wins giữa nhiều thiết bị
+function setInstallmentsGuarded(items, tsIso) {
+  if (items === undefined || items === null) return;
+  var curTs = getSetting('installments_ts');
+  var curT = curTs ? new Date(curTs).getTime() : 0;
+  var newT = tsIso ? new Date(tsIso).getTime() : Date.now();
+  if (newT >= curT) {
+    setSetting('installments', items);
+    setSetting('installments_ts', tsIso || new Date().toISOString());
+    return true;
+  }
+  return false;
+}
+
+// V9: lưu trả góp — CÓ XÁC NHẬN (JSONP). payload: {items:[...], ts:'ISO'}
+function saveInstallmentsAction(payload) {
+  if (!payload || typeof payload !== 'object') return { ok: false, error: 'bad payload' };
+  var stored = setInstallmentsGuarded(payload.items, payload.ts);
+  return { ok: true, stored: stored };
 }
 
 function addTransaction(tx) {
@@ -200,8 +247,8 @@ function saveSettingsData(p) {
   if (p.budgets !== undefined) setSetting('budgets', p.budgets);
   if (p.theme !== undefined) setSetting('theme', String(p.theme));
   if (p.soundOn !== undefined) setSetting('soundOn', String(p.soundOn));
-  if (p.weekBudget !== undefined) setSetting('weekBudget', p.weekBudget === null ? 'null' : p.weekBudget);
-  if (p.installments !== undefined) setSetting('installments', p.installments);
+  if (p.weekBudget !== undefined) storeWeekBudgetGuarded(p.weekBudget);
+  if (p.installments !== undefined) setInstallmentsGuarded(p.installments, p.installmentsTs);
   if (p.budgetTypeMap !== undefined) setSetting('budgetTypeMap', p.budgetTypeMap);
   if (p.accounts !== undefined) setSetting('accounts', p.accounts);
   return { ok: true };
@@ -260,7 +307,7 @@ function doGet(e) {
     let result;
     switch (action) {
       case 'ping':
-        result = { ok: true, version: 8 };
+        result = { ok: true, version: 9 };
         break;
       case 'getAll':
         result = getAllData();
@@ -282,6 +329,9 @@ function doGet(e) {
         break;
       case 'saveMonthMoney':
         result = withLock(function () { return saveMonthMoney(JSON.parse(p.payload)); });
+        break;
+      case 'saveInstallments':
+        result = withLock(function () { return saveInstallmentsAction(JSON.parse(p.payload)); });
         break;
       default:
         result = { ok: false, error: 'unknown action: ' + action };
