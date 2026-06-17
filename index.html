@@ -48,9 +48,12 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 @keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
 @keyframes ripple-out{0%{transform:scale(0);opacity:.25;}100%{transform:scale(4);opacity:0;}}
 @keyframes spin{to{transform:rotate(360deg);}}
+@keyframes coinBob{0%,100%{transform:translateY(0) scale(1) rotate(-4deg);}50%{transform:translateY(-10px) scale(1.1) rotate(4deg);}}
+@keyframes coinGlow{0%,100%{filter:drop-shadow(0 2px 3px rgba(0,0,0,.25));}50%{filter:drop-shadow(0 10px 20px rgba(93,202,165,.55));}}
+@keyframes coinIn{0%{opacity:0;transform:translateY(14px) scale(.6);}100%{opacity:1;transform:translateY(0) scale(1);}}
 /* APP SPLASH — shown until data is loaded */
 #appSplash{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .45s ease;}
-#appSplash .sp-logo{font-size:34px;animation:fadeIn .5s ease;}
+#appSplash .sp-logo{font-size:42px;transform-origin:center 70%;animation:coinIn .5s cubic-bezier(.34,1.56,.64,1) both,coinBob 1.5s ease-in-out .5s infinite,coinGlow 1.5s ease-in-out .5s infinite;}
 #appSplash .sp-ring{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
 #appSplash .sp-msg{font-size:12px;color:var(--text2);letter-spacing:.3px;}
 /* PAGE TRANSITIONS — smooth fade */
