@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-title" content="Finance">
 <meta name="theme-color" content="#0f0f0f">
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%231D9E75' rx='20' width='100' height='100'/><text x='50%25' y='55%25' font-size='55' text-anchor='middle' dominant-baseline='middle'>💰</text></svg>">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/svg+xml" href="./icon.svg">
 <title>Finance Tracker</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="preconnect" href="https://script.google.com">
@@ -2604,6 +2606,25 @@ function renderFomcChip(){
 
 
 renderFomcChip();setInterval(renderFomcChip,3600*1000);
+
+/* ── PWA: service worker + lưu trữ bền (chống iOS xoá dữ liệu) ── */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js').then(reg=>{
+      // Phát hiện bản mới đã cài → báo nhẹ (HTML vốn đã network-first nên nội dung luôn mới)
+      reg.addEventListener('updatefound',()=>{
+        const nw=reg.installing;if(!nw)return;
+        nw.addEventListener('statechange',()=>{
+          if(nw.state==='installed'&&navigator.serviceWorker.controller){
+            try{showToast('Đã cập nhật bản mới ✓');}catch(e){}
+          }
+        });
+      });
+    }).catch(()=>{});
+  });
+}
+// Xin trình duyệt giữ dữ liệu lâu dài (giảm rủi ro bị dọn dẹp). Dữ liệu vẫn được sao lưu trên cloud.
+if(navigator.storage&&navigator.storage.persist){navigator.storage.persist().catch(()=>{});}
 </script>
 <div class="calc-overlay" id="calcOverlay" onclick="if(event.target===this)closeCalc()">
   <div class="calc-box">
