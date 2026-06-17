@@ -790,9 +790,11 @@ body.privacy .val,body.privacy .tx-amt,body.privacy .metric-val,body.privacy .we
 <!-- Chart.js tải sau khi splash đã hiện (không chặn lần sơn đầu) nhưng trước script chính -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <!-- Firebase (compat) cho đồng bộ real-time -->
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+<!-- Firebase nạp kiểu defer: KHÔNG chặn khởi động app. App hiện ngay với dữ liệu
+     local; init() chờ SDK sẵn sàng rồi bật đồng bộ real-time chạy nền. -->
+<script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
 <script>
 const PAGES=['dashboard','accounts','history','stats','budget','invest','settings'];
 const PALETTE=['#1D9E75','#D85A30','#378ADD','#BA7517','#534AB7','#D4537E','#888780','#5DCAA5','#E24B4A','#EF9F27'];
@@ -1006,6 +1008,7 @@ function renderMonthList(txs){
   el.innerHTML=[...txs].reverse().map(t=>`<div class="tx-item"><div class="tx-left"><div class="tx-dot ${t.type==='thu'?'green':'red'}"></div><div class="tx-info"><div class="tx-note">${t.note}${t.budgetType==='extra'?'<span class="badge-extra">ngoài</span>':''}</div><div class="tx-meta">${t.cat} · ${dateStr(t.date)} ${timeStr(t.date)}</div></div></div><div class="tx-right"><span class="tx-amt ${t.type==='thu'?'val-green':'val-red'}">${t.type==='thu'?'+':'-'}${fmt(t.amount)}</span><span class="tx-del" onclick="deleteTx(${t.id})">✕</span></div></div>`).join('');
 }
 function renderMonthChart(txs){
+  if(typeof Chart==='undefined')return; // Chart.js chưa nạp xong → bỏ qua, tránh crash init()
   const thuTotal=txs.filter(t=>t.type==='thu').reduce((s,t)=>s+t.amount,0);
   // Gộp CHI theo danh mục TỪ DỮ LIỆU THẬT → không bỏ sót khi tên danh mục đã đổi/đồng bộ khác
   const chiByCat={};
@@ -1353,8 +1356,16 @@ function init(){
   const now=new Date();$('dashDate').textContent=now.toLocaleDateString('vi-VN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});$('sidebarDate').textContent=now.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'});
   if(syncUrl){$('syncUrl').value=syncUrl;updateSyncUI(true,'Đã lưu URL');syncConnected=true;}
   rebuildSelects();onCalcCatChange();updateAll();
-  if(fbConfigured()){fbInit();setTimeout(()=>{if(!FB.uid&&!FB._shown)hideSplash();},2600);}
-  else{bootSync();}
+  // Firebase nạp kiểu defer → có thể chưa sẵn sàng lúc init() chạy.
+  // Chờ tối đa ~8s cho SDK; có thì bật real-time, không thì chạy offline/Apps Script.
+  (function waitFB(n){
+    if(typeof firebase!=='undefined'){fbConfigured()?fbInit():bootSync();return;}
+    if(n>160){bootSync();return;}
+    setTimeout(function(){waitFB(n+1);},50);
+  })(0);
+  // QUAN TRỌNG: hiện app NGAY bằng dữ liệu đã lưu trong máy — KHÔNG bắt người dùng
+  // chờ Firebase kết nối/đồng bộ. Firebase về thì tự cập nhật số liệu real-time (chạy nền).
+  setTimeout(function(){hideSplash();},1000);
 }
 
 /* ── SPLASH ── */
