@@ -4,11 +4,12 @@
    - Tài nguyên tĩnh (Chart.js CDN, Google Fonts, icon): CACHE-FIRST + cập nhật ngầm.
    - API dữ liệu (Apps Script) & API giá realtime: KHÔNG cache → luôn lấy số liệu mới.
    Đổi CACHE_VER mỗi khi muốn xoá cache cũ chắc chắn. */
-const CACHE_VER = 'finance-v1';
+const CACHE_VER = 'finance-v2';
 const SHELL = ['./', './manifest.json', './icon.svg', './icon-maskable.svg'];
 
-// Host không bao giờ cache (dữ liệu phải tươi)
-const NO_CACHE = /(script\.google\.com|script\.googleusercontent\.com|googleusercontent\.com|vang\.today|gold-api\.com|api\.coingecko\.com|binance\.com|vndirect\.com\.vn|open\.er-api\.com)/i;
+// CHỈ những host này (ngoài same-origin) mới được SW xử lý/cache.
+// Mọi thứ khác — Apps Script (JSONP), API giá… — SW KHÔNG đụng tới (để trình duyệt tự lo).
+const CDN = /^(cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)$/i;
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -33,12 +34,14 @@ self.addEventListener('fetch', e => {
   let url;
   try { url = new URL(req.url); } catch (_) { return; }
 
-  // 1) API dữ liệu / giá → để trình duyệt tự xử lý (network, không cache)
-  if (NO_CACHE.test(url.hostname)) return;
+  const sameOrigin = (url.origin === self.location.origin);
+  // Chỉ can thiệp same-origin + vài CDN tĩnh đã biết. Còn lại (Apps Script JSONP,
+  // API giá, mọi domain khác) → return: SW không đụng, tránh phá kết nối trên iOS.
+  if (!sameOrigin && !CDN.test(url.hostname)) return;
 
-  // 2) HTML / điều hướng → network-first
+  // 2) HTML / điều hướng (same-origin) → network-first
   const accept = req.headers.get('accept') || '';
-  if (req.mode === 'navigate' || accept.includes('text/html')) {
+  if (sameOrigin && (req.mode === 'navigate' || accept.includes('text/html'))) {
     e.respondWith(
       fetch(req)
         .then(res => {
