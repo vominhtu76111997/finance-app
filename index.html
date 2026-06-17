@@ -891,10 +891,22 @@ function renderMonthList(txs){
 }
 function renderMonthChart(txs){
   const thuTotal=txs.filter(t=>t.type==='thu').reduce((s,t)=>s+t.amount,0);
-  const labels=['Thu nhập',...catsChi.map(c=>c.name)];const data=[thuTotal,...catsChi.map(c=>txs.filter(t=>t.cat===c.name).reduce((s,t)=>s+t.amount,0))];
-  const colors=['#1D9E75',...catsChi.map(c=>c.color)];
+  // Gộp CHI theo danh mục TỪ DỮ LIỆU THẬT → không bỏ sót khi tên danh mục đã đổi/đồng bộ khác
+  const chiByCat={};
+  txs.filter(t=>t.type==='chi').forEach(t=>{const k=t.cat||'Khác';chiByCat[k]=(chiByCat[k]||0)+t.amount;});
+  const catColor={};catsChi.forEach(c=>{catColor[c.name]=c.color;});
+  // Danh mục đang cấu hình (có chi) trước, danh mục lạ (đã xoá/đổi tên) xếp sau
+  const ordered=[];
+  catsChi.forEach(c=>{if(chiByCat[c.name]>0){ordered.push([c.name,chiByCat[c.name],c.color]);delete chiByCat[c.name];}});
+  const extra=['#9C6ADE','#E8B44A','#3AAFA9','#D4537E','#5DCAA5','#888780'];let ei=0;
+  Object.keys(chiByCat).forEach(k=>{if(chiByCat[k]>0)ordered.push([k,chiByCat[k],extra[ei++%extra.length]]);});
+  const chiTotal=ordered.reduce((s,o)=>s+o[1],0);
+  const labels=['Thu nhập',...ordered.map(o=>o[0])];
+  const data=[thuTotal,...ordered.map(o=>o[1])];
+  const colors=['#1D9E75',...ordered.map(o=>o[2])];
+  const empty=!thuTotal&&!chiTotal;
   if(charts.month)charts.month.destroy();
-  charts.month=new Chart($('monthChart'),{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},color:'#888780',boxWidth:8,padding:8}},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}}}});
+  charts.month=new Chart($('monthChart'),{type:'doughnut',data:{labels:empty?['Chưa có dữ liệu']:labels,datasets:[{data:empty?[1]:data,backgroundColor:empty?['#33333a']:colors,borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},color:'#888780',boxWidth:8,padding:8}},tooltip:{callbacks:{label:c=>empty?'Chưa có giao dịch':(' '+c.label+': '+fmt(c.raw))}}}}});
 }
 
 /* ── HISTORY ── */
