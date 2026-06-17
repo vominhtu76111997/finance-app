@@ -9,7 +9,11 @@
 <meta name="theme-color" content="#0f0f0f">
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%231D9E75' rx='20' width='100' height='100'/><text x='50%25' y='55%25' font-size='55' text-anchor='middle' dominant-baseline='middle'>💰</text></svg>">
 <title>Finance Tracker</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com">
+<link rel="dns-prefetch" href="https://script.google.com">
+<link rel="dns-prefetch" href="https://script.googleusercontent.com">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 [data-theme="dark"]{--bg:#0a0a0c;--bg2:#12121a;--bg3:#1a1a28;--bg4:#242438;--border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.10);--text:#f0ede8;--text2:#8b8b9e;--text3:#555568;--sidebar-bg:rgba(12,12,18,0.85);--theme-color:#0a0a0c;}
@@ -682,6 +686,8 @@ body.privacy .val,body.privacy .tx-amt,body.privacy .metric-val,body.privacy .we
 </div>
 <div class="toast" id="toast"></div>
 
+<!-- Chart.js tải sau khi splash đã hiện (không chặn lần sơn đầu) nhưng trước script chính -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 const PAGES=['dashboard','accounts','history','stats','budget','invest','settings'];
 const PALETTE=['#1D9E75','#D85A30','#378ADD','#BA7517','#534AB7','#D4537E','#888780','#5DCAA5','#E24B4A','#EF9F27'];
@@ -1025,6 +1031,8 @@ const CRYPTO_IDS={
 };
 // Stock symbol extraction
 const STOCK_SYMS={'FPT — Công nghệ':'FPT','VCB — Vietcombank':'VCB','TCB — Techcombank':'TCB','HPG — Hòa Phát':'HPG','MWG — Thế Giới Di Động':'MWG','VNM — Vinamilk':'VNM','SSI — Chứng khoán SSI':'SSI','MBB — MB Bank':'MBB','CTG — VietinBank':'CTG','VIC — Vingroup':'VIC'};
+// Nhãn thân thiện cho mã vàng vang.today (để khớp tên tài sản)
+const GOLD_LABELS={SJL1L10:'SJC vàng miếng',SJ9999:'SJC nhẫn 9999',DOHCML:'DOJI HCM',DOSJL:'DOJI SJC',PQHN24NTT:'PNJ 24K',PQ24NTT:'PNJ 24K',BT9999NTT:'Bảo Tín 9999',NMHCM:'Nhẫn Mi Hồng',XAUUSD:'Vàng thế giới'};
 
 // Cache for fetched prices
 let priceCache={gold:null,crypto:null,goldTime:0,cryptoTime:0};
@@ -1042,7 +1050,6 @@ async function fetchLivePrice(){
   const btn=$('fetchPriceBtn');
 
   if(cat==='custom'){showToast('Tự nhập không hỗ trợ lấy giá auto',false);return;}
-  if(!syncUrl){showToast('Cần kết nối Cloud Sync trước (Cài đặt → nhập URL Apps Script)',false);status.textContent='⚠ Cần kết nối Cloud Sync';return;}
 
   btn.textContent='⏳ Đang lấy...';status.textContent='';
 
@@ -1051,9 +1058,11 @@ async function fetchLivePrice(){
       const now=Date.now();
       let data=priceCache.gold;
       if(!data||now-priceCache.goldTime>300000){
-        const r=await jsonp(syncUrl+'?action=getPrice&type=gold');
-        if(!r||!r.ok)throw new Error(r?.error||'Lỗi API vàng');
-        data=r.prices;priceCache.gold=data;priceCache.goldTime=now;
+        // Lấy giá vàng trực tiếp (vang.today qua proxy) — không cần backend
+        const v=await fetchJsonRace('https://www.vang.today/api/prices');
+        const arr=(v&&v.success&&Array.isArray(v.data))?v.data:[];
+        data=arr.map(d=>({name:GOLD_LABELS[d.type_code]||d.name||d.type_code,type:d.type_code,buy:d.buy,sell:d.sell}));
+        priceCache.gold=data;priceCache.goldTime=now;
       }
       if(!Array.isArray(data)||!data.length){
         status.textContent='⚠ API trả về rỗng — thử lại sau';btn.textContent='⚡ Lấy giá realtime';return;
@@ -1101,9 +1110,11 @@ async function fetchLivePrice(){
       const now=Date.now();
       let data=priceCache.crypto;
       if(!data||now-priceCache.cryptoTime>60000){
-        const r=await jsonp(syncUrl+'?action=getPrice&type=crypto');
-        if(!r||!r.ok)throw new Error(r?.error||'Lỗi API crypto');
-        data=r.prices;priceCache.crypto=data;priceCache.cryptoTime=now;
+        // CoinGecko hỗ trợ CORS → gọi trực tiếp, không cần backend
+        const ids=Object.values(CRYPTO_IDS).join(',');
+        const r=await fetchJson('https://api.coingecko.com/api/v3/simple/price?ids='+ids+'&vs_currencies=vnd');
+        if(!r||typeof r!=='object')throw new Error('Lỗi API CoinGecko');
+        data=r;priceCache.crypto=data;priceCache.cryptoTime=now;
       }
       const cgId=CRYPTO_IDS[asset.name];
       if(cgId&&data[cgId]){
@@ -1118,12 +1129,15 @@ async function fetchLivePrice(){
     }
     else if(cat==='stock'){
       const sym=STOCK_SYMS[asset.name]||asset.name.split(' ')[0];
-      const r=await jsonp(syncUrl+'?action=getPrice&type=stock&symbol='+sym);
-      if(!r||!r.ok)throw new Error(r?.error||'Lỗi API cổ phiếu');
-      if(r.price){
-        $('calcPrice').value=r.price/1000;
+      // Giá cổ phiếu VN trực tiếp từ TCBS (cp = nghìn đồng/cp) → đổi ra đồng
+      const r=await fetchJsonRace('https://apipubaws.tcbs.com.vn/stock-insight/v1/stock/second-tc-price?tickers='+encodeURIComponent(sym));
+      const d=r&&r.data&&r.data[0];
+      const cp=d?(d.cp||d.lastPrice||d.price||0):0;
+      const priceVnd=cp?Math.round(cp<100000?cp*1000:cp):0; // cp thường là nghìn đồng
+      if(priceVnd){
+        $('calcPrice').value=priceVnd/1000;
         smartPreview($('calcPrice'),'calcPP');
-        status.innerHTML=`✓ ${sym}: <b>${fmt(r.price)}</b>/cp — <span style="color:var(--text3)">${new Date().toLocaleTimeString('vi-VN')}</span>`;
+        status.innerHTML=`✓ ${sym}: <b>${fmt(priceVnd)}</b>/cp — <span style="color:var(--text3)">${new Date().toLocaleTimeString('vi-VN')}</span>`;
         calcBuy();playSuccess();
       } else {
         status.textContent='⚠ Không lấy được giá '+sym;
@@ -1227,9 +1241,9 @@ async function bootSync(){
         await cloudPushAll();
       }
       splash('Đang tải dữ liệu…');updateSyncUI(true,'Đang tải...');
-      // Wait for the pull, but never block the UI more than 8s; data still
-      // applies in the background if the network is slow.
-      await Promise.race([cloudPull(true,true).catch(()=>{}),delay(8000)]);
+      // Chờ tải xong nhưng KHÔNG chặn UI quá 2.5s → web luôn hiện dưới 3 giây.
+      // Nếu mạng chậm, dữ liệu vẫn tự áp vào nền ngay khi về (re-render tại chỗ).
+      await Promise.race([cloudPull(true,true).catch(()=>{}),delay(2500)]);
     }catch(e){console.warn('boot',e);}
     _autoPulling=false;
   }
