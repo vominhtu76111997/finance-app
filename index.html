@@ -1058,9 +1058,9 @@ async function fetchLivePrice(){
       const now=Date.now();
       let data=priceCache.gold;
       if(!data||now-priceCache.goldTime>300000){
-        // Lấy giá vàng trực tiếp (vang.today qua proxy) — không cần backend
-        const v=await fetchJsonRace('https://www.vang.today/api/prices');
-        const arr=(v&&v.success&&Array.isArray(v.data))?v.data:[];
+        // Lấy giá vàng trực tiếp (vang.today có CORS) — không cần backend
+        const v=await fetchVangPrices();
+        const arr=vtPrices(v)||[];
         data=arr.map(d=>({name:GOLD_LABELS[d.type_code]||d.name||d.type_code,type:d.type_code,buy:d.buy,sell:d.sell}));
         priceCache.gold=data;priceCache.goldTime=now;
       }
@@ -1129,11 +1129,12 @@ async function fetchLivePrice(){
     }
     else if(cat==='stock'){
       const sym=STOCK_SYMS[asset.name]||asset.name.split(' ')[0];
-      // Giá cổ phiếu VN trực tiếp từ TCBS (cp = nghìn đồng/cp) → đổi ra đồng
-      const r=await fetchJsonRace('https://apipubaws.tcbs.com.vn/stock-insight/v1/stock/second-tc-price?tickers='+encodeURIComponent(sym));
-      const d=r&&r.data&&r.data[0];
-      const cp=d?(d.cp||d.lastPrice||d.price||0):0;
-      const priceVnd=cp?Math.round(cp<100000?cp*1000:cp):0; // cp thường là nghìn đồng
+      // Giá cổ phiếu VN trực tiếp từ VNDirect (có CORS). c = giá đóng cửa theo nghìn đồng
+      const to=Math.floor(Date.now()/1000),from=to-20*86400;
+      const r=await fetchJson('https://dchart-api.vndirect.com.vn/dchart/history?symbol='+encodeURIComponent(sym)+'&resolution=D&from='+from+'&to='+to);
+      const closes=r&&Array.isArray(r.c)?r.c:null;
+      const last=closes&&closes.length?closes[closes.length-1]:0;
+      const priceVnd=last?Math.round(last*1000):0; // VNDirect: nghìn đồng → đồng
       if(priceVnd){
         $('calcPrice').value=priceVnd/1000;
         smartPreview($('calcPrice'),'calcPP');
@@ -2070,6 +2071,34 @@ function appendLocalSjcHistory(domestic){
   localStorage.setItem('fin_sjc_hist',JSON.stringify(h));
 }
 function localSjcHistory(){try{return JSON.parse(localStorage.getItem('fin_sjc_hist')||'[]');}catch(e){return [];}}
+// vang.today ĐỔI ĐỊNH DẠNG: prices là OBJECT theo mã (không còn mảng "data").
+// Chuyển về mảng [{type_code,name,buy,sell,change_buy,change_sell}]
+function vtPrices(resp){
+  if(!resp||!resp.success||!resp.prices||typeof resp.prices!=='object')return null;
+  const out=[];
+  for(const code in resp.prices){const p=resp.prices[code];if(!p)continue;out.push({type_code:code,name:p.name,buy:p.buy,sell:p.sell,change_buy:p.change_buy,change_sell:p.change_sell});}
+  return out.length?out:null;
+}
+// Lịch sử vang.today: history:[{date, prices:{CODE:{buy,sell,...}}}] → [{update_time,sell,buy}]
+function vtHistory(resp,code){
+  if(!resp||!resp.success||!Array.isArray(resp.history))return null;
+  const out=[];
+  resp.history.forEach(h=>{
+    const p=h.prices&&h.prices[code];if(!p)return;
+    const val=p.sell||p.buy;if(!val)return;
+    const t=Math.floor(new Date(h.date+'T00:00:00').getTime()/1000);
+    if(!t)return;
+    out.push({update_time:t,sell:val,buy:p.buy||val});
+  });
+  return out.length?out:null;
+}
+// Lấy giá vàng trong nước: ưu tiên gọi thẳng (vang.today có CORS), proxy chỉ là dự phòng
+async function fetchVangPrices(qs){
+  const url='https://www.vang.today/api/prices'+(qs||'');
+  let r=await fetchJson(url);
+  if(r&&r.success)return r;
+  return await fetchJsonRace(url); // dự phòng qua proxy
+}
 
 function initGoldPage(){
   if(!_goldInited){_goldInited=true;loadGold();}
@@ -2092,13 +2121,12 @@ async function loadGold(manual){
   const [rate,world,vResp]=await Promise.all([
     fetchJson('https://open.er-api.com/v6/latest/USD'),
     fetchJson('https://api.gold-api.com/price/XAU'),
-    fetchJsonRace('https://www.vang.today/api/prices')
+    fetchVangPrices()
   ]);
   if(rate&&rate.rates&&rate.rates.VND)_usdVnd=rate.rates.VND;
   if(!_usdVnd)_usdVnd=(cache&&cache.usdVnd)||26500;
   if(world&&world.price)_xauUsd=world.price;
-  let domestic=null;
-  if(vResp&&vResp.success&&vResp.data)domestic=vResp.data;
+  let domestic=vtPrices(vResp);
   if(!_xauUsd&&domestic){const w=domestic.find(d=>d.type_code==='XAUUSD');if(w)_xauUsd=w.sell||w.buy;}
   if(!domestic){
     const sjc=await scrapeSjc();
@@ -2188,19 +2216,19 @@ function renderGoldPrices(domestic){
 async function loadGoldHistory(){
   // Bắn 2 nguồn lịch sử SONG SONG
   const klP=fetchJson('https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=1d&limit=30');
-  const sjcP=fetchJsonRace('https://www.vang.today/api/prices?type=SJL1L10&days=30');
+  const sjcP=fetchVangPrices('?type=SJL1L10&days=30');
   // 1) Thế giới: Binance PAXG/USDT (CORS chuẩn, nhanh) → vẽ NGAY khi có
   const kl=await klP;
   if(Array.isArray(kl)&&kl.length){
     _goldHist.world=kl.map(k=>({update_time:Math.floor(k[0]/1000),sell:parseFloat(k[4])}));
   }else{
-    const w=await fetchJsonMulti('https://www.vang.today/api/prices?type=XAUUSD&days=30');
-    _goldHist.world=(w&&w.success&&Array.isArray(w.data))?w.data:_goldHist.world;
+    const w=await fetchVangPrices('?type=XAUUSD&days=30');
+    _goldHist.world=vtHistory(w,'XAUUSD')||_goldHist.world;
   }
   drawGoldChart(); // biểu đồ thế giới hiện ngay, không chờ SJC
   // 2) SJC: gộp lịch sử từ vang.today + lịch sử cục bộ (luôn có dữ liệu)
   const s=await sjcP;
-  const remote=(s&&s.success&&Array.isArray(s.data))?s.data:[];
+  const remote=vtHistory(s,'SJL1L10')||[];
   const merged=mergeHistByDay(localSjcHistory(),remote);
   _goldHist.sjc=merged.length?merged:null;
   drawGoldChart();
