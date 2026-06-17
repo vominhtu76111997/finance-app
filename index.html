@@ -135,8 +135,12 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 /* SCROLLBAR — sleek */
 ::-webkit-scrollbar{width:4px;height:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}::-webkit-scrollbar-thumb:hover{background:var(--text3);}
 /* MOBILE NAV */
-.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--sidebar-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:.5px solid var(--border);z-index:20;padding:4px 0 calc(var(--safe-bot)+4px);justify-content:space-around;}
-.mob-nav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9px;color:var(--text3);cursor:pointer;padding:4px 6px;background:none;border:none;font-family:inherit;transition:all .2s cubic-bezier(.22,1,.36,1);}
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--sidebar-bg);backdrop-filter:blur(22px) saturate(1.6);-webkit-backdrop-filter:blur(22px) saturate(1.6);border-top:.5px solid var(--border);z-index:20;padding:6px 4px calc(var(--safe-bot)+6px);justify-content:space-around;align-items:stretch;}
+.mob-nav-btn{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:9.5px;font-weight:500;color:var(--text3);cursor:pointer;padding:6px 1px;background:none;border:none;font-family:inherit;border-radius:13px;transition:all .2s cubic-bezier(.22,1,.36,1);white-space:nowrap;min-height:50px;-webkit-tap-highlight-color:transparent;}
+.mob-nav-btn>span{font-size:21px !important;line-height:1;transition:transform .2s cubic-bezier(.34,1.56,.64,1);}
+.mob-nav-btn.active{color:var(--accent);background:linear-gradient(180deg,rgba(93,202,165,.16),rgba(93,202,165,.03));}
+.mob-nav-btn.active>span{transform:translateY(-2px) scale(1.14);}
+.mob-nav-btn:active{transform:scale(.9);}
 .mob-nav-btn.active{color:var(--accent);}
 .mob-nav-btn:active{transform:scale(.9);}
 .mob-nav-btn svg{width:18px;height:18px;transition:transform .2s;}.mob-nav-btn:hover svg{transform:translateY(-2px);}
@@ -211,6 +215,7 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 .filter-row select:focus,.filter-row input:focus{border-color:var(--accent);color:var(--text);}
 .tx-table{width:100%;border-collapse:collapse;font-size:12px;}.tx-table th{text-align:left;font-size:10px;font-weight:600;color:var(--text3);padding:0 8px 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:.5px solid var(--border);}
 .tx-table td{padding:8px;border-bottom:.5px solid var(--border);transition:background .15s;}.tx-table tr:hover td{background:rgba(128,128,128,.04);}
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .badge{font-size:9px;padding:2px 7px;border-radius:20px;font-weight:500;}.badge-green{background:var(--green-bg);color:var(--green);}.badge-red{background:var(--red-bg);color:var(--red);}
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;}
 .stats-cat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:.5px solid var(--border);font-size:12px;transition:all .2s;}.stats-cat-row:last-child{border-bottom:none;}.stats-cat-row:hover{padding-left:4px;}
@@ -273,10 +278,48 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 .danger-zone p{font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.6;}
 @media(max-width:768px){
   .sidebar{display:none;}.mobile-nav{display:flex;}
-  .main{margin-left:0;padding:calc(var(--safe-top)+12px) 14px calc(var(--safe-bot)+70px);max-width:100%;}
-  .metrics{grid-template-columns:1fr 1fr;}.entry-row,.bottom-row,.stats-grid{grid-template-columns:1fr;}
+  .main{margin-left:0;padding:calc(var(--safe-top)+10px) 14px calc(var(--safe-bot)+88px);max-width:100%;}
+  /* iOS: ô nhập PHẢI ≥16px nếu không Safari tự phóng to khi bấm vào — fix giật/khó dùng */
+  input,select,textarea,.field input,.field select,.add-cat-row input,.budget-input-wrap input,.opening-mini input,.filter-row select,.filter-row input,.cat-name-input,.cat-emoji-input{font-size:16px !important;}
+  /* Vùng chạm thoải mái hơn (chuẩn Apple ~44px) */
+  .btn{padding:9px 14px;font-size:13px;}
+  .btn-full{padding:13px;font-size:15px;}
+  .quick-chip{font-size:12px;padding:7px 13px;}
+  /* Lưới về 1 cột */
+  .metrics{grid-template-columns:1fr 1fr;gap:10px;}
+  .entry-row,.bottom-row,.stats-grid{grid-template-columns:1fr;}
   .inv-grid{grid-template-columns:1fr;}.calc-row{grid-template-columns:1fr;}.calc-eq{display:none;}
-  #scifiBg{opacity:.35;}
+  /* Số liệu to, dễ đọc */
+  .metric{padding:14px 15px;}
+  .metric .label{font-size:11px;}
+  .metric .val{font-size:19px;letter-spacing:-.3px;}
+  .metric .sub-val{font-size:10.5px;}
+  /* Topbar gọn gàng; ẩn nút máy tính ở thanh trên (đã có nút nổi 🧮) */
+  .topbar{gap:10px;margin-bottom:16px;}
+  .topbar-left h1{font-size:20px;}
+  .topbar-actions{gap:8px;}
+  .topbar-actions .btn[onclick*="toggleCalc"]{display:none;}
+  /* Card thoáng hơn, chữ tiêu đề rõ hơn */
+  .card{padding:15px;border-radius:16px;}
+  .card-title{font-size:12px;}
+  /* Danh sách giao dịch chữ to hơn + nút xoá dễ chạm */
+  .tx-info .tx-note{font-size:14px;}
+  .tx-info .tx-meta{font-size:11px;}
+  .tx-amt{font-size:14px;}
+  .tx-del{padding:8px 9px;font-size:14px;}
+  .tx-scroll{max-height:none;}
+  /* Bảng lịch sử: cuộn ngang thay vì vỡ layout */
+  .tx-table{font-size:13px;min-width:540px;}
+  .tx-table th{font-size:10px;}
+  /* Trả góp: chip tháng dễ chạm hơn */
+  .tg-month-chip{width:48px;height:48px;}
+  /* Biểu đồ cao vừa phải trên mobile */
+  .chart-wrap{height:240px;}
+  /* Giảm blur nặng để cuộn mượt hơn trên điện thoại */
+  .card,.metric{backdrop-filter:blur(12px) saturate(1.2);-webkit-backdrop-filter:blur(12px) saturate(1.2);}
+  /* Nút nổi to hơn cho dễ bấm */
+  .fab{width:50px;height:50px;font-size:21px;}
+  #scifiBg{opacity:.3;}
 }
 
 /* ── TRẢ GÓP STYLES ── */
@@ -441,12 +484,13 @@ body.privacy .val,body.privacy .tx-amt,body.privacy .metric-val,body.privacy .we
 </nav>
 
 <div class="mobile-nav">
-  <button class="mob-nav-btn active" data-page="dashboard" onclick="showPage('dashboard')"><span style="font-size:16px">📊</span>T.Kê</button>
-  <button class="mob-nav-btn" data-page="accounts" onclick="showPage('accounts')"><span style="font-size:16px">💳</span>TK</button>
-  <button class="mob-nav-btn" data-page="invest" onclick="showPage('invest')"><span style="font-size:16px">📈</span>ĐT</button><button class="mob-nav-btn" data-page="gold" onclick="showPage('gold')"><span style="font-size:16px">🥇</span>Vàng</button>
-  <button class="mob-nav-btn" data-page="tragop" onclick="showPage('tragop')"><span style="font-size:16px">💰</span>Góp</button>
-  <button class="mob-nav-btn" data-page="history" onclick="showPage('history')"><span style="font-size:16px">📋</span>Sử</button>
-  <button class="mob-nav-btn" data-page="settings" onclick="showPage('settings')"><span style="font-size:16px">⚙️</span>⚙</button>
+  <button class="mob-nav-btn active" data-page="dashboard" onclick="showPage('dashboard')"><span>📊</span>Tổng</button>
+  <button class="mob-nav-btn" data-page="accounts" onclick="showPage('accounts')"><span>💳</span>Ví</button>
+  <button class="mob-nav-btn" data-page="invest" onclick="showPage('invest')"><span>📈</span>Đầu tư</button>
+  <button class="mob-nav-btn" data-page="gold" onclick="showPage('gold')"><span>🥇</span>Vàng</button>
+  <button class="mob-nav-btn" data-page="tragop" onclick="showPage('tragop')"><span>💰</span>Góp</button>
+  <button class="mob-nav-btn" data-page="history" onclick="showPage('history')"><span>📋</span>Lịch sử</button>
+  <button class="mob-nav-btn" data-page="settings" onclick="showPage('settings')"><span>⚙️</span>Cài đặt</button>
 </div>
 
 <main class="main">
@@ -545,7 +589,7 @@ body.privacy .val,body.privacy .tx-amt,body.privacy .metric-val,body.privacy .we
     <input type="month" id="filterMonth" onchange="renderHistory()"/>
     <button class="btn" onclick="resetFilters()">Reset</button>
   </div>
-  <div class="card"><table class="tx-table"><thead><tr><th>Ngày</th><th>Loại</th><th>Danh mục</th><th>Mô tả</th><th style="text-align:right">Tiền</th><th></th></tr></thead><tbody id="historyBody"></tbody></table></div>
+  <div class="card"><div class="table-scroll"><table class="tx-table"><thead><tr><th>Ngày</th><th>Loại</th><th>Danh mục</th><th>Mô tả</th><th style="text-align:right">Tiền</th><th></th></tr></thead><tbody id="historyBody"></tbody></table></div></div>
 </div>
 
 <!-- STATS -->
@@ -1311,11 +1355,14 @@ function _pollNow(){
 }
 function startLivePolling(){
   if(_pollTimer)clearInterval(_pollTimer);
-  _pollTimer=setInterval(_pollNow,25000);
+  _pollTimer=setInterval(_pollNow,6000); // 6s khi đang mở & hiển thị → cập nhật gần như tức thì
   if(!_liveBound){
     _liveBound=true;
+    // Lấy data ngay khi quay lại app / có mạng lại (đổi máy là thấy liền)
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)_pollNow();});
     window.addEventListener('focus',_pollNow);
+    window.addEventListener('pageshow',_pollNow);   // iOS bfcache khi mở lại PWA
+    window.addEventListener('online',_pollNow);
   }
 }
 let monthMoneyData=JSON.parse(localStorage.getItem('fin_month_money')||'null');
