@@ -56,6 +56,17 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 #appSplash .sp-logo{font-size:42px;transform-origin:center 70%;animation:coinIn .5s cubic-bezier(.34,1.56,.64,1) both,coinBob 1.5s ease-in-out .5s infinite,coinGlow 1.5s ease-in-out .5s infinite;}
 #appSplash .sp-ring{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
 #appSplash .sp-msg{font-size:12px;color:var(--text2);letter-spacing:.3px;}
+/* FIREBASE LOGIN OVERLAY */
+#fbLogin{position:fixed;inset:0;z-index:9998;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+#fbLogin .fb-box{width:100%;max-width:340px;background:var(--bg2);border:.5px solid var(--border2);border-radius:18px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:fadeIn .4s ease;}
+#fbLogin h2{font-size:18px;font-weight:700;margin-bottom:4px;text-align:center;}
+#fbLogin .fb-sub{font-size:12px;color:var(--text2);margin-bottom:16px;text-align:center;line-height:1.5;}
+#fbLogin input{width:100%;background:var(--bg3);border:.5px solid var(--border2);border-radius:10px;color:var(--text);font-size:16px;padding:12px;outline:none;margin-bottom:10px;font-family:inherit;}
+#fbLogin input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(93,202,165,.1);}
+#fbLogin button.fb-go{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--green),var(--accent));color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:4px;transition:opacity .2s;}
+#fbLogin button.fb-go:active{opacity:.8;}
+#fbLogin .fb-err{font-size:12px;color:var(--red);min-height:18px;margin-top:8px;text-align:center;}
+#fbLogin .fb-skip{display:block;text-align:center;font-size:11px;color:var(--text3);margin-top:14px;cursor:pointer;text-decoration:underline;}
 /* PAGE TRANSITIONS — smooth fade */
 .page{display:none;animation:fadeIn .4s ease both;}
 .page.active{display:block;}
@@ -470,6 +481,18 @@ body.privacy .val,body.privacy .tx-amt,body.privacy .metric-val,body.privacy .we
 <body data-theme="dark">
 <div id="appSplash"><div class="sp-logo">💰</div><div class="sp-ring"></div><div class="sp-msg" id="splashMsg">Đang tải dữ liệu…</div></div>
 <script>/* failsafe: never trap the user behind the splash even if scripts fail */setTimeout(function(){var s=document.getElementById('appSplash');if(s){s.style.opacity='0';setTimeout(function(){if(s&&s.parentNode)s.parentNode.removeChild(s);},450);}},12000);</script>
+<div id="fbLogin"><div class="fb-box">
+  <div style="font-size:34px;text-align:center;margin-bottom:6px;">💰</div>
+  <h2>Finance</h2>
+  <div class="fb-sub">Đăng nhập để đồng bộ real-time giữa các thiết bị</div>
+  <form onsubmit="fbDoLogin(event)">
+    <input id="fbEmail" type="email" placeholder="Email" autocomplete="username" inputmode="email">
+    <input id="fbPass" type="password" placeholder="Mật khẩu" autocomplete="current-password">
+    <button type="submit" class="fb-go">Đăng nhập</button>
+  </form>
+  <div class="fb-err" id="fbLoginErr"></div>
+  <span class="fb-skip" onclick="fbSkip()">Dùng offline (không đồng bộ)</span>
+</div></div>
 <div class="video-bg"><canvas id="scifiBg"></canvas></div>
 <div class="layout">
 <nav class="sidebar">
@@ -742,7 +765,8 @@ body.privacy .val,body.privacy .tx-amt,body.privacy .metric-val,body.privacy .we
   <div class="settings-section"><h2>Giao diện</h2><div class="theme-row" id="themeRow"></div><div class="toggle-row"><span>Âm thanh khi thao tác</span><button class="toggle" id="soundToggle" onclick="toggleSound()"></button></div></div>
   <div class="settings-section"><h2>Danh mục chi</h2><div class="cat-list" id="catListChi"></div><div style="font-size:10px;color:var(--text3);margin-bottom:6px;">Chọn màu & icon:</div><div class="color-picker-row" id="colorPickerChi"></div><div class="icon-picker" id="iconPickerChi"></div><div class="add-cat-row"><input type="text" id="newCatNameChi" placeholder="Tên danh mục chi mới..." onkeydown="if(event.key==='Enter')addCat('chi')"/><button class="btn btn-accent" onclick="addCat('chi')">+ Thêm</button></div></div>
   <div class="settings-section"><h2>Danh mục thu</h2><div class="cat-list" id="catListThu"></div><div style="font-size:10px;color:var(--text3);margin-bottom:6px;">Chọn màu & icon:</div><div class="color-picker-row" id="colorPickerThu"></div><div class="icon-picker" id="iconPickerThu"></div><div class="add-cat-row"><input type="text" id="newCatNameThu" placeholder="Tên danh mục thu mới..." onkeydown="if(event.key==='Enter')addCat('thu')"/><button class="btn btn-accent" onclick="addCat('thu')">+ Thêm</button></div></div>
-  <div class="settings-section"><h2>Cloud sync</h2><div class="card" style="margin-bottom:10px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span id="syncStatus" style="width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0;"></span><span id="syncLabel" style="font-size:11px;color:var(--text2);">Chưa kết nối</span></div><div class="field"><label>Apps Script URL</label><input type="text" id="syncUrl" placeholder="https://script.google.com/macros/s/.../exec" oninput="localStorage.setItem('fin_sync_url',this.value)"/></div><div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-accent" onclick="cloudConnect()">Kết nối</button><button class="btn btn-blue" onclick="cloudPull()">↓ Pull</button><button class="btn btn-green" onclick="cloudPushAll()">↑ Push</button><button class="btn" onclick="cloudDisconnect()">Ngắt</button></div></div></div>
+  <div class="settings-section"><h2>Đồng bộ Firebase (real-time)</h2><div class="card" id="fbStatus" style="margin-bottom:10px;"><div style="font-size:11px;color:var(--text3);">Đang khởi tạo…</div></div></div>
+  <div class="settings-section"><h2>Cloud sync (Google Sheets — dự phòng)</h2><div class="card" style="margin-bottom:10px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span id="syncStatus" style="width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0;"></span><span id="syncLabel" style="font-size:11px;color:var(--text2);">Chưa kết nối</span></div><div class="field"><label>Apps Script URL</label><input type="text" id="syncUrl" placeholder="https://script.google.com/macros/s/.../exec" oninput="localStorage.setItem('fin_sync_url',this.value)"/></div><div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-accent" onclick="cloudConnect()">Kết nối</button><button class="btn btn-blue" onclick="cloudPull()">↓ Pull</button><button class="btn btn-green" onclick="cloudPushAll()">↑ Push</button><button class="btn" onclick="cloudDisconnect()">Ngắt</button></div></div></div>
   <div class="settings-section"><h2>Dữ liệu</h2><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-green" onclick="exportCSV()">↓ CSV</button><button class="btn btn-green" onclick="exportJSON()">↓ Backup</button><button class="btn" onclick="document.getElementById('importFile').click()">↑ Import</button><input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)"/></div></div>
   <div class="settings-section"><h2>Cài iPhone</h2><div class="card" style="font-size:12px;color:var(--text2);line-height:1.7;">Safari → Share → Add to Home Screen → Done</div></div>
   <div class="settings-section"><h2>Vùng nguy hiểm</h2><div class="danger-zone"><p>Xóa toàn bộ dữ liệu. Không hoàn tác.</p><button class="btn btn-red" onclick="clearAllData()">Xóa tất cả</button></div></div>
@@ -757,6 +781,10 @@ body.privacy .val,body.privacy .tx-amt,body.privacy .metric-val,body.privacy .we
 
 <!-- Chart.js tải sau khi splash đã hiện (không chặn lần sơn đầu) nhưng trước script chính -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<!-- Firebase (compat) cho đồng bộ real-time -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
 <script>
 const PAGES=['dashboard','accounts','history','stats','budget','invest','settings'];
 const PALETTE=['#1D9E75','#D85A30','#378ADD','#BA7517','#534AB7','#D4537E','#888780','#5DCAA5','#E24B4A','#EF9F27'];
@@ -819,13 +847,13 @@ function playClick(){if(!soundOn)return;const o=audioCtx.createOscillator(),g=au
 function playSuccess(){if(!soundOn)return;[800,1200].forEach((f,i)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.frequency.value=f;g.gain.value=.06;o.start(audioCtx.currentTime+i*.08);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+i*.08+.1);o.stop(audioCtx.currentTime+i*.08+.1);});}
 
 /* ── PERSIST ── */
-const save=()=>{localStorage.setItem('fin_tx',JSON.stringify(txData));setDirty();};
-const saveCatsChi=()=>{localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));cloudSaveSettings();};
-const saveCatsThu=()=>{localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));cloudSaveSettings();};
-const saveBudgets=()=>{localStorage.setItem('fin_budgets',JSON.stringify(budgets));cloudSaveSettings();};
-const saveInv=()=>{localStorage.setItem('fin_inv',JSON.stringify(investments));setDirty();};
-const saveAccounts=()=>{localStorage.setItem('fin_accounts',JSON.stringify(accounts));setDirty();cloudSaveSettings();};
-function saveOpening(){opening=parseFloat($('openingBal').value)||0;localStorage.setItem('fin_opening',opening);cloudSaveSettings();}
+const save=()=>{localStorage.setItem('fin_tx',JSON.stringify(txData));setDirty();fbSaveAll();};
+const saveCatsChi=()=>{localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));cloudSaveSettings();fbSaveAll();};
+const saveCatsThu=()=>{localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));cloudSaveSettings();fbSaveAll();};
+const saveBudgets=()=>{localStorage.setItem('fin_budgets',JSON.stringify(budgets));cloudSaveSettings();fbSaveAll();};
+const saveInv=()=>{localStorage.setItem('fin_inv',JSON.stringify(investments));setDirty();fbSaveAll();};
+const saveAccounts=()=>{localStorage.setItem('fin_accounts',JSON.stringify(accounts));setDirty();cloudSaveSettings();fbSaveAll();};
+function saveOpening(){opening=parseFloat($('openingBal').value)||0;localStorage.setItem('fin_opening',opening);cloudSaveSettings();fbSaveAll();}
 function toggleSound(){soundOn=!soundOn;localStorage.setItem('fin_sound',soundOn);$('soundToggle').className='toggle'+(soundOn?' on':'');if(soundOn)playClick();}
 function setTheme(t){theme=t;document.body.setAttribute('data-theme',t);localStorage.setItem('fin_theme',t);renderThemeRow();}
 
@@ -1265,6 +1293,7 @@ function renderThemeRow(){const el=$('themeRow');if(!el)return;el.innerHTML=THEM
 function cycleTheme(){const i=THEMES.findIndex(t=>t.id===theme);const next=THEMES[(i+1)%THEMES.length];setTheme(next.id);showToast('Giao diện: '+next.name);playClick();}
 function renderSettings(){
   renderThemeRow();$('soundToggle').className='toggle'+(soundOn?' on':'');
+  try{fbUpdateSettingsUI();}catch(e){}
   ['chi','thu'].forEach(type=>{
     const list=getCats(type);
     $(type==='chi'?'catListChi':'catListThu').innerHTML=list.map(c=>`<div class="cat-row"><div style="width:12px;height:12px;border-radius:50%;background:${c.color};flex-shrink:0;"></div><input class="cat-emoji-input" value="${c.emoji}" maxlength="2" onchange="setCatEmoji('${type}','${c.name}',this.value)"/><input class="cat-name-input" value="${c.name}" onblur="renameCat('${type}','${c.name}',this.value)" onkeydown="if(event.key==='Enter')this.blur()"/><span style="font-size:10px;color:var(--text3)">${txData.filter(t=>t.cat===c.name).length}</span><span class="cat-del-btn" onclick="deleteCat('${type}','${c.name}')">✕</span></div>`).join('');
@@ -1293,21 +1322,21 @@ function jsonp(url,timeout=20000){return new Promise((resolve,reject)=>{const cb
 function cloudSend(action,data){return jsonp(syncUrl+'?action='+action+'&payload='+encodeURIComponent(JSON.stringify(data)));}
 async function cloudConnect(){syncUrl=$('syncUrl').value.trim().replace(/\/+$/,'');if(!syncUrl){showToast('Nhập URL',false);return;}localStorage.setItem('fin_sync_url',syncUrl);showToast('Đang kết nối...');updateSyncUI(false,'Đang kết nối...');try{const r=await jsonp(syncUrl+'?action=ping');if(r&&r.ok){syncConnected=true;updateSyncUI(true,'Đã kết nối ✓');showToast('OK! Auto-pushing...');playSuccess();await cloudPushAll();if(monthMoneyData)cloudSaveMonthMoney(monthMoneyData);if(installments.length)cloudSaveInstallments();}else{syncConnected=false;updateSyncUI(false,'Lỗi');showToast('Thất bại',false);}}catch(e){syncConnected=false;const isScript=/script error/i.test(e.message||'');const msg=isScript?'Không tải được script. Trên iPhone: Cài đặt → Safari → TẮT "Ngăn theo dõi trên nhiều trang web" + tắt trình chặn QC, rồi thử lại.':e.message;updateSyncUI(false,isScript?'Bị chặn (xem hướng dẫn)':e.message);showToast(msg,false);if(isScript)alert('KẾT NỐI BỊ CHẶN TRÊN ĐIỆN THOẠI\n\nThẻ script gọi sang Google bị Safari chặn. Cách sửa trên iPhone:\n\n1) Cài đặt → Safari → TẮT "Ngăn theo dõi trên nhiều trang web" (Prevent Cross-Site Tracking).\n2) Tắt mọi trình chặn quảng cáo/nội dung (Content Blocker).\n3) Nếu bật iCloud Private Relay → tạm tắt.\n4) Mở bằng Safari (không phải Chrome/trình duyệt trong app Facebook…).\n\nKiểm tra nhanh: mở link này trong Safari, phải thấy {"ok":true}:\n'+syncUrl+'?action=ping');}}
 function cloudDisconnect(){syncUrl='';syncConnected=false;localStorage.removeItem('fin_sync_url');$('syncUrl').value='';updateSyncUI(false,'Chưa kết nối');showToast('Đã ngắt');}
-async function cloudPull(isAuto,silent){if(!syncUrl){if(!silent)showToast('Chưa kết nối',false);return;}if(isAuto&&_userDirty){updateSyncUI(true,'Skip auto-pull (có thay đổi)');return;}if(!isAuto&&!silent)showToast('Pull...');updateSyncUI(true,'Pull...');try{const r=await jsonp(syncUrl+'?action=getAll');if(!r||!r.ok){if(!isAuto)showToast('Pull lỗi',false);return;}if(isAuto&&_userDirty){updateSyncUI(true,'Skip (có thay đổi mới)');return;}let merged=false;if(r.transactions){const localMap={};txData.forEach(t=>{if(t.budgetType)localMap[t.id]=t.budgetType;});const cloudBtMap=r.budgetTypeMap||{};txData=r.transactions;txData.forEach(t=>{if(!t.budgetType){if(cloudBtMap[t.id]){t.budgetType=cloudBtMap[t.id];merged=true;}else if(localMap[t.id]){t.budgetType=localMap[t.id];merged=true;}}});localStorage.setItem('fin_tx',JSON.stringify(txData));}if(r.investments){investments=r.investments;saveInv();}if(r.catsChi){catsChi=r.catsChi;localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));}if(r.catsThu){catsThu=r.catsThu;localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));}if(r.budgets){budgets=r.budgets;localStorage.setItem('fin_budgets',JSON.stringify(budgets));}if(r.opening!==undefined){opening=r.opening;localStorage.setItem('fin_opening',opening);$('openingBal').value=opening||'';}let _mmRepair=false;if(r.weekBudget!==undefined){let sv=r.weekBudget;if(typeof sv==='string'){try{sv=JSON.parse(sv);}catch(_e){sv=null;}}const sT=sv&&sv.createdAt?new Date(sv.createdAt).getTime():0;const lT=monthMoneyData&&monthMoneyData.createdAt?new Date(monthMoneyData.createdAt).getTime():0;if(sv&&sv.deleted){if(sT>=lT){monthMoneyData=null;localStorage.removeItem('fin_month_money');}else if(monthMoneyData){_mmRepair=true;}}else if(sv&&sv.total!==undefined&&sv.total!==null){if(sT>=lT){monthMoneyData=sv;localStorage.setItem('fin_month_money',JSON.stringify(monthMoneyData));}else{_mmRepair=true;}}else{if(monthMoneyData)_mmRepair=true;/* server trống → GIỮ local, tự đẩy lại lên */}}let _instRepair=false;if(r.installments!==undefined){const sT=r.installmentsTs?new Date(r.installmentsTs).getTime():0;const lT=installmentsTs?new Date(installmentsTs).getTime():0;if(Array.isArray(r.installments)&&sT>=lT){installments=r.installments;installmentsTs=r.installmentsTs||installmentsTs;localStorage.setItem('fin_installments',JSON.stringify(installments));if(r.installmentsTs)localStorage.setItem('fin_installments_ts',r.installmentsTs);}else if(lT>sT&&installments.length){_instRepair=true;}}if(r.accounts){accounts=r.accounts;localStorage.setItem('fin_accounts',JSON.stringify(accounts));}rebuildSelects();updateAll();if($('page-tragop')&&$('page-tragop').classList.contains('active'))renderTragop();if(!silent){showToast('Pull: '+txData.length+' GD');playSuccess();}updateSyncUI(true,'Synced '+new Date().toLocaleTimeString('vi-VN'));if(_mmRepair){setTimeout(()=>cloudSaveMonthMoney(monthMoneyData),500);}if(_instRepair){setTimeout(()=>cloudSaveInstallments(),700);}if(merged){setTimeout(()=>cloudPushAll(),1000);}}catch(e){if(!isAuto&&!silent)showToast('Pull: '+e.message,false);}}
-async function cloudPushAll(){if(!syncUrl){showToast('Chưa kết nối',false);return;}showToast('Push...');updateSyncUI(true,'Push...');try{
+async function cloudPull(isAuto,silent){if(fbActive)return;if(!syncUrl){if(!silent)showToast('Chưa kết nối',false);return;}if(isAuto&&_userDirty){updateSyncUI(true,'Skip auto-pull (có thay đổi)');return;}if(!isAuto&&!silent)showToast('Pull...');updateSyncUI(true,'Pull...');try{const r=await jsonp(syncUrl+'?action=getAll');if(!r||!r.ok){if(!isAuto)showToast('Pull lỗi',false);return;}if(isAuto&&_userDirty){updateSyncUI(true,'Skip (có thay đổi mới)');return;}let merged=false;if(r.transactions){const localMap={};txData.forEach(t=>{if(t.budgetType)localMap[t.id]=t.budgetType;});const cloudBtMap=r.budgetTypeMap||{};txData=r.transactions;txData.forEach(t=>{if(!t.budgetType){if(cloudBtMap[t.id]){t.budgetType=cloudBtMap[t.id];merged=true;}else if(localMap[t.id]){t.budgetType=localMap[t.id];merged=true;}}});localStorage.setItem('fin_tx',JSON.stringify(txData));}if(r.investments){investments=r.investments;saveInv();}if(r.catsChi){catsChi=r.catsChi;localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));}if(r.catsThu){catsThu=r.catsThu;localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));}if(r.budgets){budgets=r.budgets;localStorage.setItem('fin_budgets',JSON.stringify(budgets));}if(r.opening!==undefined){opening=r.opening;localStorage.setItem('fin_opening',opening);$('openingBal').value=opening||'';}let _mmRepair=false;if(r.weekBudget!==undefined){let sv=r.weekBudget;if(typeof sv==='string'){try{sv=JSON.parse(sv);}catch(_e){sv=null;}}const sT=sv&&sv.createdAt?new Date(sv.createdAt).getTime():0;const lT=monthMoneyData&&monthMoneyData.createdAt?new Date(monthMoneyData.createdAt).getTime():0;if(sv&&sv.deleted){if(sT>=lT){monthMoneyData=null;localStorage.removeItem('fin_month_money');}else if(monthMoneyData){_mmRepair=true;}}else if(sv&&sv.total!==undefined&&sv.total!==null){if(sT>=lT){monthMoneyData=sv;localStorage.setItem('fin_month_money',JSON.stringify(monthMoneyData));}else{_mmRepair=true;}}else{if(monthMoneyData)_mmRepair=true;/* server trống → GIỮ local, tự đẩy lại lên */}}let _instRepair=false;if(r.installments!==undefined){const sT=r.installmentsTs?new Date(r.installmentsTs).getTime():0;const lT=installmentsTs?new Date(installmentsTs).getTime():0;if(Array.isArray(r.installments)&&sT>=lT){installments=r.installments;installmentsTs=r.installmentsTs||installmentsTs;localStorage.setItem('fin_installments',JSON.stringify(installments));if(r.installmentsTs)localStorage.setItem('fin_installments_ts',r.installmentsTs);}else if(lT>sT&&installments.length){_instRepair=true;}}if(r.accounts){accounts=r.accounts;localStorage.setItem('fin_accounts',JSON.stringify(accounts));}rebuildSelects();updateAll();if($('page-tragop')&&$('page-tragop').classList.contains('active'))renderTragop();if(!silent){showToast('Pull: '+txData.length+' GD');playSuccess();}updateSyncUI(true,'Synced '+new Date().toLocaleTimeString('vi-VN'));if(_mmRepair){setTimeout(()=>cloudSaveMonthMoney(monthMoneyData),500);}if(_instRepair){setTimeout(()=>cloudSaveInstallments(),700);}if(merged){setTimeout(()=>cloudPushAll(),1000);}}catch(e){if(!isAuto&&!silent)showToast('Pull: '+e.message,false);}}
+async function cloudPushAll(){if(fbActive)return;if(!syncUrl){showToast('Chưa kết nối',false);return;}showToast('Push...');updateSyncUI(true,'Push...');try{
 const btMap={};txData.forEach(t=>{if(t.budgetType)btMap[t.id]=t.budgetType;});
 const payload=JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,allTx:txData,allInv:investments,installments:installments,installmentsTs:installmentsTs,budgetTypeMap:btMap,accounts:accounts});
 const form=new FormData();form.append('action','pushAll');form.append('payload',payload);
 await fetch(syncUrl,{method:'POST',body:form,mode:'no-cors',redirect:'follow'});
 showToast('Push OK!');playSuccess();updateSyncUI(true,'Pushed '+new Date().toLocaleTimeString('vi-VN'));clearDirty();
 }catch(e){showToast('Push: '+e.message,false);}}
-async function cloudAddTx(tx){if(!syncUrl||!syncConnected)return;try{const r=await cloudSend('addTx',tx);if(r&&r.ok){clearDirty();updateSyncUI(true,'↑ '+new Date().toLocaleTimeString('vi-VN'));}else updateSyncUI(true,'⚠ Lỗi');}catch(e){updateSyncUI(true,'⚠ Lỗi');}}
-function cloudDeleteTx(id){if(!syncUrl||!syncConnected)return;jsonp(syncUrl+'?action=deleteTx&id='+id).then(r=>{if(r&&r.ok)clearDirty();}).catch(()=>{});}
-function cloudAddInv(inv){if(!syncUrl||!syncConnected)return;cloudSend('addInvestment',inv).catch(()=>{});}
-function cloudDeleteInv(id){if(!syncUrl||!syncConnected)return;jsonp(syncUrl+'?action=deleteInvestment&id='+id).catch(()=>{});}
-function cloudUpdateInv(data){if(!syncUrl||!syncConnected)return;cloudSend('updateInvestment',data).catch(()=>{});}
+async function cloudAddTx(tx){if(fbActive||!syncUrl||!syncConnected)return;try{const r=await cloudSend('addTx',tx);if(r&&r.ok){clearDirty();updateSyncUI(true,'↑ '+new Date().toLocaleTimeString('vi-VN'));}else updateSyncUI(true,'⚠ Lỗi');}catch(e){updateSyncUI(true,'⚠ Lỗi');}}
+function cloudDeleteTx(id){if(fbActive||!syncUrl||!syncConnected)return;jsonp(syncUrl+'?action=deleteTx&id='+id).then(r=>{if(r&&r.ok)clearDirty();}).catch(()=>{});}
+function cloudAddInv(inv){if(fbActive||!syncUrl||!syncConnected)return;cloudSend('addInvestment',inv).catch(()=>{});}
+function cloudDeleteInv(id){if(fbActive||!syncUrl||!syncConnected)return;jsonp(syncUrl+'?action=deleteInvestment&id='+id).catch(()=>{});}
+function cloudUpdateInv(data){if(fbActive||!syncUrl||!syncConnected)return;cloudSend('updateInvestment',data).catch(()=>{});}
 let _settleTimer=null;
-function cloudSaveSettings(){if(!syncUrl||!syncConnected)return;const btMap={};txData.forEach(t=>{if(t.budgetType)btMap[t.id]=t.budgetType;});const form=new FormData();form.append('action','saveSettings');form.append('payload',JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,installments:installments,installmentsTs:installmentsTs,budgetTypeMap:btMap,accounts:accounts}));setDirty();fetch(syncUrl,{method:'POST',body:form,mode:'no-cors'}).catch(()=>{});if(_settleTimer)clearTimeout(_settleTimer);_settleTimer=setTimeout(clearDirty,3500);/* no-cors can't confirm; release the pull-guard shortly after */}
+function cloudSaveSettings(){if(fbActive||!syncUrl||!syncConnected)return;const btMap={};txData.forEach(t=>{if(t.budgetType)btMap[t.id]=t.budgetType;});const form=new FormData();form.append('action','saveSettings');form.append('payload',JSON.stringify({opening,catsChi,catsThu,budgets,theme,soundOn,installments:installments,installmentsTs:installmentsTs,budgetTypeMap:btMap,accounts:accounts}));setDirty();fetch(syncUrl,{method:'POST',body:form,mode:'no-cors'}).catch(()=>{});if(_settleTimer)clearTimeout(_settleTimer);_settleTimer=setTimeout(clearDirty,3500);/* no-cors can't confirm; release the pull-guard shortly after */}
 function updateSyncUI(connected,label){const dot=$('syncStatus');const lbl=$('syncLabel');if(dot)dot.style.background=connected?'var(--green)':'var(--text3)';if(lbl)lbl.textContent=label;}
 
 /* ── INIT ── */
@@ -1316,7 +1345,8 @@ function init(){
   const now=new Date();$('dashDate').textContent=now.toLocaleDateString('vi-VN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});$('sidebarDate').textContent=now.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'});
   if(syncUrl){$('syncUrl').value=syncUrl;updateSyncUI(true,'Đã lưu URL');syncConnected=true;}
   rebuildSelects();onCalcCatChange();updateAll();
-  bootSync();
+  if(fbConfigured()){fbInit();setTimeout(()=>{if(!FB.uid&&!FB._shown)hideSplash();},2600);}
+  else{bootSync();}
 }
 
 /* ── SPLASH ── */
@@ -1348,7 +1378,7 @@ async function bootSync(){
 /* ── LIVE POLLING: keep data fresh across devices without manual refresh ── */
 let _pollTimer=null,_liveBound=false;
 function _pollNow(){
-  if(!syncUrl||!syncConnected)return;
+  if(fbActive||!syncUrl||!syncConnected)return;
   if(document.hidden)return;                 // tab not visible
   if(_userDirty||_autoPulling)return;        // local change in flight
   const ae=document.activeElement,tag=ae&&ae.tagName;
@@ -1411,6 +1441,116 @@ let installments=JSON.parse(localStorage.getItem('fin_installments')||'[]');
 let installmentsTs=localStorage.getItem('fin_installments_ts')||'';
 // Trả góp cũ (trước v9) chưa có timestamp → gán mốc thời gian để được seed lên cloud
 if(installments.length&&!installmentsTs){installmentsTs=new Date().toISOString();localStorage.setItem('fin_installments_ts',installmentsTs);}
+
+/* ════════════════════════════════════════════
+   FIREBASE REALTIME SYNC
+   - Khởi động tức thì từ localStorage; Firebase đẩy cập nhật real-time (<1s).
+   - Dữ liệu riêng tư ở /users/{uid}; đăng nhập email/mật khẩu.
+   - Khi Firebase bật → Apps Script tự tắt (fbActive=true).
+════════════════════════════════════════════ */
+var fbActive=false;
+const FIREBASE_CONFIG={apiKey:"AIzaSyDTGFDXo390dH3sIZMBmw4J6E6XtBYuTY8",authDomain:"finance-fb03b.firebaseapp.com",databaseURL:"https://finance-fb03b-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"finance-fb03b",storageBucket:"finance-fb03b.firebasestorage.app",messagingSenderId:"724966318747",appId:"1:724966318747:web:4426dc76d0ec7780a21c3e",measurementId:"G-P6QS10PJ35"};
+const FB={auth:null,db:null,ref:null,uid:null,_pushSig:null,_applying:false,_seeded:false,_saveTimer:null,_shown:false};
+
+function fbConfigured(){return typeof firebase!=='undefined'&&FIREBASE_CONFIG&&!!FIREBASE_CONFIG.databaseURL;}
+
+function fbInit(){
+  if(!fbConfigured())return;
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    FB.auth=firebase.auth();
+    FB.db=firebase.database();
+    fbActive=true;
+    try{FB.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);}catch(e){}
+    FB.auth.onAuthStateChanged(function(u){
+      if(u){FB.uid=u.uid;FB._shown=true;hideLogin();fbAttach();}
+      else{FB.uid=null;fbDetach();showLogin();}
+      fbUpdateSettingsUI();
+    });
+  }catch(e){console.warn('fb init',e);fbActive=false;bootSync();}
+}
+
+function fbAttach(){
+  if(!FB.uid||!FB.db)return;
+  FB.ref=FB.db.ref('users/'+FB.uid);
+  FB.ref.on('value',function(snap){
+    const val=snap.val();
+    if(val==null){ // cloud trống → seed bằng dữ liệu hiện có của máy này
+      if(!FB._seeded){FB._seeded=true;fbSaveAll(true);}
+      hideSplash();return;
+    }
+    FB._seeded=true;
+    fbApply(val);
+  });
+}
+function fbDetach(){if(FB.ref){FB.ref.off();FB.ref=null;}FB._seeded=false;}
+
+// Chữ ký nội dung (độc lập thứ tự key) để bỏ qua "echo" do chính mình ghi
+function fbSig(d){
+  const t=Object.keys(d.transactions||{}).map(function(k){var x=d.transactions[k];return x.id+':'+x.type+':'+x.amount+':'+x.cat+':'+x.note+':'+x.date+':'+(x.budgetType||'');}).sort().join('|');
+  const i=Object.keys(d.investments||{}).map(function(k){var x=d.investments[k];return x.id+':'+x.curPrice+':'+x.buyPrice+':'+x.qty+':'+x.name+':'+x.type;}).sort().join('|');
+  const a=Object.keys(d.accounts||{}).map(function(k){var x=d.accounts[k];return x.id+':'+x.balance+':'+x.name+':'+x.type;}).sort().join('|');
+  const s=typeof d.settings==='string'?d.settings:JSON.stringify(d.settings||{});
+  return t+'#'+i+'#'+a+'#'+s;
+}
+
+function fbApply(val){
+  const sig=fbSig({transactions:val.transactions,investments:val.investments,accounts:val.accounts,settings:val.settings});
+  if(sig===FB._pushSig){hideSplash();return;} // chính mình vừa ghi → bỏ qua
+  FB._applying=true;
+  try{
+    txData=Object.keys(val.transactions||{}).map(function(k){return val.transactions[k];}).sort(function(a,b){return (a.id||0)-(b.id||0);});
+    investments=Object.keys(val.investments||{}).map(function(k){return val.investments[k];});
+    accounts=Object.keys(val.accounts||{}).map(function(k){return val.accounts[k];});
+    let s={};try{s=val.settings?(typeof val.settings==='string'?JSON.parse(val.settings):val.settings):{};}catch(e){s={};}
+    opening=s.opening||0;if($('openingBal'))$('openingBal').value=opening||'';
+    if(s.catsChi)catsChi=s.catsChi;
+    if(s.catsThu)catsThu=s.catsThu;
+    budgets=s.budgets||{};
+    monthMoneyData=s.monthMoney||null;
+    installments=s.installments||[];
+    localStorage.setItem('fin_tx',JSON.stringify(txData));
+    localStorage.setItem('fin_inv',JSON.stringify(investments));
+    localStorage.setItem('fin_accounts',JSON.stringify(accounts));
+    localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));
+    localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));
+    localStorage.setItem('fin_budgets',JSON.stringify(budgets));
+    if(monthMoneyData)localStorage.setItem('fin_month_money',JSON.stringify(monthMoneyData));else localStorage.removeItem('fin_month_money');
+    localStorage.setItem('fin_installments',JSON.stringify(installments));
+    FB._pushSig=sig;
+  }catch(e){console.warn('fb apply',e);}
+  FB._applying=false;
+  try{rebuildSelects();updateAll();}catch(e){}
+  const ap=document.querySelector('.page.active');
+  if(ap){const id=ap.id.replace('page-','');const map={tragop:renderTragop,history:renderHistory,invest:renderInvest,accounts:renderAccounts,stats:renderStats,budget:renderBudget,settings:renderSettings};try{(map[id]||function(){})();}catch(e){}}
+  hideSplash();
+}
+
+function fbSaveAll(immediate){
+  if(!fbActive||!FB.uid||FB._applying||!FB.ref)return;
+  clearTimeout(FB._saveTimer);
+  const run=function(){
+    if(!FB.ref)return;
+    const txObj={};txData.forEach(function(t){if(t&&t.id!=null)txObj[t.id]=t;});
+    const invObj={};investments.forEach(function(i){if(i&&i.id!=null)invObj[i.id]=i;});
+    const accObj={};accounts.forEach(function(a){if(a&&a.id!=null)accObj[a.id]=a;});
+    const settingsObj={opening:opening,catsChi:catsChi,catsThu:catsThu,budgets:budgets,monthMoney:monthMoneyData||null,installments:installments};
+    const data={transactions:txObj,investments:invObj,accounts:accObj,settings:JSON.stringify(settingsObj)};
+    FB._pushSig=fbSig(data);
+    FB.ref.set(data).catch(function(e){console.warn('fb save',e);});
+  };
+  if(immediate)run();else FB._saveTimer=setTimeout(run,300);
+}
+
+/* ── LOGIN UI ── */
+function showLogin(){FB._shown=true;const el=$('fbLogin');if(el)el.style.display='flex';hideSplash();}
+function hideLogin(){const el=$('fbLogin');if(el)el.style.display='none';}
+function fbDoLogin(e){if(e&&e.preventDefault)e.preventDefault();if(!FB.auth)return;const em=($('fbEmail').value||'').trim(),pw=$('fbPass').value||'';if(!em||!pw){$('fbLoginErr').textContent='Nhập email & mật khẩu';return;}$('fbLoginErr').textContent='Đang đăng nhập…';FB.auth.signInWithEmailAndPassword(em,pw).then(function(){$('fbLoginErr').textContent='';$('fbPass').value='';}).catch(function(err){$('fbLoginErr').textContent=fbErrMsg(err);});}
+function fbSkip(){hideLogin();showToast('Dùng offline — dữ liệu chỉ lưu trên máy này',false);}
+function fbLogout(){if(FB.auth)FB.auth.signOut();fbDetach();showToast('Đã đăng xuất');showLogin();fbUpdateSettingsUI();}
+function fbErrMsg(err){const c=(err&&err.code)||'';if(/wrong-password|invalid-credential|invalid-login/.test(c))return'Sai email hoặc mật khẩu';if(/user-not-found/.test(c))return'Tài khoản không tồn tại';if(/too-many-requests/.test(c))return'Thử lại sau ít phút';if(/network/.test(c))return'Lỗi mạng — kiểm tra kết nối';if(/invalid-email/.test(c))return'Email không hợp lệ';return(err&&err.message)||'Đăng nhập lỗi';}
+function fbUpdateSettingsUI(){const el=$('fbStatus');if(!el)return;if(!fbActive){el.innerHTML='<div style="font-size:11px;color:var(--text3);">Firebase chưa sẵn sàng (kiểm tra mạng / cấu hình).</div>';return;}if(FB.uid){const em=(FB.auth&&FB.auth.currentUser&&FB.auth.currentUser.email)||'';el.innerHTML='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px rgba(29,158,117,.5);flex-shrink:0;"></span><span style="font-size:11px;color:var(--text2);flex:1;min-width:120px;">Đã đăng nhập: <b style="color:var(--text)">'+em+'</b><br>Đồng bộ real-time đang bật ✓</span><button class="btn btn-red" onclick="fbLogout()">Đăng xuất</button></div>';}else{el.innerHTML='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:11px;color:var(--text2);flex:1;">Chưa đăng nhập.</span><button class="btn btn-accent" onclick="showLogin()">Đăng nhập</button></div>';}}
+
 init();
 
 /* ────────────────────────────────────────────
@@ -1419,7 +1559,7 @@ init();
 
 // Lưu lên cloud CÓ XÁC NHẬN (JSONP trả response) + retry, fallback saveSettings cho script cũ
 async function cloudSaveMonthMoney(data){
-  if(!syncUrl||!syncConnected)return false;
+  if(fbActive||!syncUrl||!syncConnected)return false;
   const payload=data||{deleted:true,createdAt:new Date().toISOString()};
   for(let i=0;i<2;i++){
     try{
@@ -1438,6 +1578,7 @@ async function saveMonthMoney(){
   const total=smartAmount(raw);
   monthMoneyData={total:total,createdAt:new Date().toISOString()};
   localStorage.setItem('fin_month_money',JSON.stringify(monthMoneyData));
+  fbSaveAll();
   $('monthMoneyInput').value='';
   updateAll();
   showToast('Đang lưu lên cloud...');
@@ -1463,6 +1604,7 @@ async function resetMonthMoney(){
   monthMoneyData=null;
   localStorage.removeItem('fin_month_money');
   localStorage.removeItem('fin_week_budget');
+  fbSaveAll();
   $('monthMoneyInput').value='';
   const p=$('monthMoneyPreview');if(p)p.textContent='';
   updateAll();
@@ -1532,10 +1674,11 @@ function saveInstallments(){
   localStorage.setItem('fin_installments_ts',installmentsTs);
   setDirty();
   cloudSaveInstallments();
+  fbSaveAll();
 }
 // Lưu trả góp lên cloud CÓ XÁC NHẬN (JSONP) + timestamp last-write-wins
 async function cloudSaveInstallments(){
-  if(!syncUrl||!syncConnected)return false;
+  if(fbActive||!syncUrl||!syncConnected)return false;
   const payload={items:installments,ts:installmentsTs};
   for(let i=0;i<2;i++){
     try{

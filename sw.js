@@ -4,12 +4,12 @@
    - Tài nguyên tĩnh (Chart.js CDN, Google Fonts, icon): CACHE-FIRST + cập nhật ngầm.
    - API dữ liệu (Apps Script) & API giá realtime: KHÔNG cache → luôn lấy số liệu mới.
    Đổi CACHE_VER mỗi khi muốn xoá cache cũ chắc chắn. */
-const CACHE_VER = 'finance-v2';
+const CACHE_VER = 'finance-v3';
 const SHELL = ['./', './manifest.json', './icon.svg', './icon-maskable.svg'];
 
-// CHỈ những host này (ngoài same-origin) mới được SW xử lý/cache.
-// Mọi thứ khác — Apps Script (JSONP), API giá… — SW KHÔNG đụng tới (để trình duyệt tự lo).
-const CDN = /^(cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)$/i;
+// CHỈ những host này (ngoài same-origin) mới được SW xử lý/cache (thư viện tĩnh).
+// Mọi thứ khác — Apps Script JSONP, Firebase realtime/auth, API giá… — SW KHÔNG đụng tới.
+const CDN = /^(cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|www\.gstatic\.com)$/i;
 
 self.addEventListener('install', e => {
   e.waitUntil(
