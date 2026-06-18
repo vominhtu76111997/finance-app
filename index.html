@@ -21,7 +21,7 @@
 [data-theme="dark"]{--bg:#0a0a0c;--bg2:#12121a;--bg3:#1a1a28;--bg4:#242438;--border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.10);--text:#f0ede8;--text2:#8b8b9e;--text3:#555568;--sidebar-bg:rgba(12,12,18,0.85);--theme-color:#0a0a0c;}
 [data-theme="light"]{--bg:#f8f7f4;--bg2:#ffffff;--bg3:#efeee9;--bg4:#e0dfd9;--border:rgba(0,0,0,0.06);--border2:rgba(0,0,0,0.10);--text:#1a1a1a;--text2:#666;--text3:#999;--sidebar-bg:rgba(255,255,255,0.88);--theme-color:#f8f7f4;}
 [data-theme="midnight"]{--bg:#060b18;--bg2:#0d1525;--bg3:#152038;--bg4:#1e2d4a;--border:rgba(100,140,255,0.08);--border2:rgba(100,140,255,0.14);--text:#e2e8f0;--text2:#6e7fa0;--text3:#3d4e6a;--sidebar-bg:rgba(8,14,30,0.88);--theme-color:#060b18;}
-:root{--green:#1D9E75;--green-bg:rgba(29,158,117,0.1);--red:#D85A30;--red-bg:rgba(216,90,48,0.1);--accent:#5DCAA5;--blue:#378ADD;--blue-bg:rgba(55,138,221,0.1);--amber:#BA7517;--amber-bg:rgba(186,117,23,0.1);--radius:10px;--radius-lg:14px;--safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);}
+:root{--green:#1D9E75;--green-bg:rgba(29,158,117,0.1);--red:#D85A30;--red-bg:rgba(216,90,48,0.1);--accent:#5DCAA5;--blue:#378ADD;--blue-bg:rgba(55,138,221,0.1);--amber:#BA7517;--amber-bg:rgba(186,117,23,0.1);--radius:10px;--radius-lg:14px;--safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);--safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px);}
 /* ── THÊM THEME (đặt sau :root để --accent ghi đè được) ── */
 [data-theme="ocean"]{--bg:#04161c;--bg2:#0a2128;--bg3:#103039;--bg4:#18434f;--border:rgba(120,220,230,0.08);--border2:rgba(120,220,230,0.15);--text:#e2f4f6;--text2:#7fb0b6;--text3:#436066;--sidebar-bg:rgba(4,18,24,0.88);--theme-color:#04161c;--accent:#2fd4c4;}
 [data-theme="forest"]{--bg:#0a140d;--bg2:#10211a;--bg3:#173024;--bg4:#214232;--border:rgba(140,230,160,0.08);--border2:rgba(140,230,160,0.15);--text:#e4f3e8;--text2:#86ab92;--text3:#4a6655;--sidebar-bg:rgba(8,18,12,0.88);--theme-color:#0a140d;--accent:#4ade80;}
@@ -30,8 +30,11 @@
 [data-theme="mocha"]{--bg:#181210;--bg2:#241b16;--bg3:#33271f;--bg4:#47362b;--border:rgba(230,200,170,0.08);--border2:rgba(230,200,170,0.15);--text:#f3e9e0;--text2:#b3a08c;--text3:#6e5c4c;--sidebar-bg:rgba(20,15,12,0.88);--theme-color:#181210;--accent:#d4a373;}
 [data-theme="nord"]{--bg:#2e3440;--bg2:#3b4252;--bg3:#434c5e;--bg4:#4c566a;--border:rgba(216,222,233,0.08);--border2:rgba(216,222,233,0.16);--text:#eceff4;--text2:#9aa4b8;--text3:#6b7488;--sidebar-bg:rgba(40,46,57,0.9);--theme-color:#2e3440;--accent:#88c0d0;}
 [data-theme="rose"]{--bg:#1a1013;--bg2:#26171c;--bg3:#352029;--bg4:#48303a;--border:rgba(255,150,180,0.08);--border2:rgba(255,150,180,0.16);--text:#f6e6ea;--text2:#bd909e;--text3:#7a5060;--sidebar-bg:rgba(22,13,16,0.88);--theme-color:#1a1013;--accent:#fb7185;}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;transition:background .4s ease,color .3s ease;overflow-x:hidden;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+/* iOS native feel: bỏ độ trễ chạm 300ms, bỏ menu giữ-lâu, cuộn đà mượt */
+button,a,.btn,.btn-full,.mob-nav-btn,.nav-item,.fab,.chi-type-btn,.quick-chip,.theme-btn,label,[onclick]{touch-action:manipulation;-webkit-touch-callout:none;}
+.tx-scroll,.tx-table-wrap,.page,main,body{-webkit-overflow-scrolling:touch;}
+body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;transition:background .4s ease,color .3s ease;overflow-x:hidden;width:100%;max-width:100vw;overscroll-behavior-y:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;}
 /* VIDEO BG */
 .video-bg{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;overflow:hidden;pointer-events:none;}
 #scifiBg{width:100%;height:100%;opacity:.55;}
@@ -40,7 +43,7 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 /* LAYOUT */
 .layout{display:flex;min-height:100vh;min-height:100dvh;position:relative;z-index:1;}
 /* SIDEBAR — glassmorphism */
-.sidebar{width:210px;min-height:100vh;background:var(--sidebar-bg);backdrop-filter:blur(20px) saturate(1.5);-webkit-backdrop-filter:blur(20px) saturate(1.5);border-right:.5px solid var(--border);display:flex;flex-direction:column;padding:calc(var(--safe-top)+16px) 0 calc(var(--safe-bot)+10px);position:fixed;top:0;left:0;bottom:0;z-index:10;transition:background .4s ease;}
+.sidebar{width:210px;min-height:100vh;background:var(--sidebar-bg);backdrop-filter:blur(20px) saturate(1.5);-webkit-backdrop-filter:blur(20px) saturate(1.5);border-right:.5px solid var(--border);display:flex;flex-direction:column;padding:calc(var(--safe-top) + 16px) 0 calc(var(--safe-bot) + 10px);position:fixed;top:0;left:0;bottom:0;z-index:10;transition:background .4s ease;}
 /* ANIMATIONS — Apple Glass */
 @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 @keyframes fadeInLeft{from{opacity:0;transform:translateX(-10px);}to{opacity:1;transform:translateX(0);}}
@@ -155,7 +158,7 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 /* SCROLLBAR — sleek */
 ::-webkit-scrollbar{width:4px;height:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}::-webkit-scrollbar-thumb:hover{background:var(--text3);}
 /* MOBILE NAV */
-.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--sidebar-bg);backdrop-filter:blur(22px) saturate(1.6);-webkit-backdrop-filter:blur(22px) saturate(1.6);border-top:.5px solid var(--border);z-index:20;padding:6px 4px calc(var(--safe-bot)+6px);justify-content:space-around;align-items:stretch;}
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--sidebar-bg);backdrop-filter:blur(22px) saturate(1.6);-webkit-backdrop-filter:blur(22px) saturate(1.6);border-top:.5px solid var(--border);z-index:20;padding:6px calc(var(--safe-right) + 6px) calc(var(--safe-bot) + 6px) calc(var(--safe-left) + 6px);justify-content:space-around;align-items:stretch;gap:2px;}
 .mob-nav-btn{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:9.5px;font-weight:500;color:var(--text3);cursor:pointer;padding:6px 1px;background:none;border:none;font-family:inherit;border-radius:13px;transition:all .2s cubic-bezier(.22,1,.36,1);white-space:nowrap;min-height:50px;-webkit-tap-highlight-color:transparent;}
 .mob-nav-btn>span{font-size:21px !important;line-height:1;transition:transform .2s cubic-bezier(.34,1.56,.64,1);}
 .mob-nav-btn.active{color:var(--accent);background:linear-gradient(180deg,rgba(93,202,165,.16),rgba(93,202,165,.03));}
@@ -299,7 +302,7 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 .danger-zone p{font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.6;}
 @media(max-width:768px){
   .sidebar{display:none;}.mobile-nav{display:flex;}
-  .main{margin-left:0;padding:calc(var(--safe-top)+10px) 14px calc(var(--safe-bot)+88px);max-width:100%;}
+  .main{margin-left:0;padding:calc(var(--safe-top) + 12px) calc(var(--safe-right) + 16px) calc(var(--safe-bot) + 96px) calc(var(--safe-left) + 16px);max-width:100%;width:100%;}
   /* iOS: ô nhập PHẢI ≥16px nếu không Safari tự phóng to khi bấm vào — fix giật/khó dùng */
   input,select,textarea,.field input,.field select,.add-cat-row input,.budget-input-wrap input,.opening-mini input,.filter-row select,.filter-row input,.cat-name-input,.cat-emoji-input{font-size:16px !important;}
   /* Vùng chạm thoải mái hơn (chuẩn Apple ~44px) */
@@ -786,6 +789,9 @@ body.privacy .val,body.privacy .tx-amt,body.privacy .metric-val,body.privacy .we
   <button class="fab fab-main" onclick="toggleCalc()" title="Máy tính (Ctrl+K)" aria-label="Máy tính"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2.5"/><line x1="8.5" y1="6" x2="15.5" y2="6"/><line x1="8.5" y1="11" x2="8.5" y2="11.01"/><line x1="12" y1="11" x2="12" y2="11.01"/><line x1="15.5" y1="11" x2="15.5" y2="11.01"/><line x1="8.5" y1="15" x2="8.5" y2="15.01"/><line x1="12" y1="15" x2="12" y2="15.01"/><line x1="15.5" y1="15" x2="15.5" y2="15.01"/><line x1="8.5" y1="18.5" x2="12" y2="18.5"/></svg></button>
 </div>
 <div class="toast" id="toast"></div>
+<!-- HAPTIC (iOS 17.4+): bật/tắt 1 <input switch> ẩn để kích rung hệ thống khi chạm nút -->
+<input type="checkbox" id="hapticSwitch" switch aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:0;height:0;opacity:0;pointer-events:none;">
+<label for="hapticSwitch" id="hapticLabel" aria-hidden="true" style="position:absolute;left:-9999px;width:0;height:0;opacity:0;pointer-events:none;"></label>
 
 <!-- Chart.js tải sau khi splash đã hiện (không chặn lần sơn đầu) nhưng trước script chính -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
@@ -855,6 +861,21 @@ function smartPreview(input,previewId){
 const audioCtx=new (window.AudioContext||window.webkitAudioContext)();
 function playClick(){if(!soundOn)return;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.frequency.value=800;g.gain.value=.08;o.start();g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+.08);o.stop(audioCtx.currentTime+.08);}
 function playSuccess(){if(!soundOn)return;[800,1200].forEach((f,i)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.frequency.value=f;g.gain.value=.06;o.start(audioCtx.currentTime+i*.08);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+i*.08+.1);o.stop(audioCtx.currentTime+i*.08+.1);});}
+/* HAPTIC: rung nhẹ khi chạm nút. iOS dùng mẹo toggle <input switch>; Android dùng Vibration API. */
+let _hapticLast=0;
+function hapticTap(){
+  const now=(window.performance&&performance.now)?performance.now():Date.now();
+  if(now-_hapticLast<40)return; // chống rung dồn khi 1 thao tác bắn nhiều event
+  _hapticLast=now;
+  try{if(navigator.vibrate)navigator.vibrate(8);}catch(e){}            // Android / trình duyệt hỗ trợ
+  try{const l=document.getElementById('hapticLabel');if(l)l.click();}catch(e){} // iOS 17.4+
+}
+/* Gắn haptic cho MỌI nút/điều khiển (cả phần tử thêm động) bằng event delegation. */
+document.addEventListener('pointerdown',function(e){
+  if(e.pointerType==='mouse')return; // chỉ rung trên cảm ứng
+  const t=e.target.closest('button,.btn,.btn-full,.mob-nav-btn,.nav-item,.fab,.chi-type-btn,.quick-chip,.theme-btn,.tx-del,.acc-edit,.acc-card,.tg-month-chip,.icon-opt,.color-opt,[onclick],input[type="checkbox"],input[type="radio"],select');
+  if(t&&t.id!=='hapticSwitch')hapticTap();
+},{passive:true,capture:true});
 
 /* ── PERSIST ── */
 const save=()=>{localStorage.setItem('fin_tx',JSON.stringify(txData));setDirty();fbSaveAll();};
