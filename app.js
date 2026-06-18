@@ -88,7 +88,7 @@ function setTheme(t){theme=t;document.body.setAttribute('data-theme',t);localSto
 function showToast(msg,ok=true){const t=$('toast');t.textContent=(ok?'✓ ':'✗ ')+msg;t.style.borderColor=ok?'rgba(29,158,117,.4)':'rgba(216,90,48,.4)';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 
 /* ── NAV ── */
-function showPage(p){playClick();document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));$('page-'+p).classList.add('active');document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.page===p));document.querySelectorAll('.mob-nav-btn').forEach(el=>el.classList.toggle('active',el.dataset.page===p));if(p==='accounts')renderAccounts();if(p==='history')renderHistory();if(p==='stats')renderStats();if(p==='budget')renderBudget();if(p==='invest')renderInvest();if(p==='settings')renderSettings();if(p==='tragop')renderTragop();if(p==='gold')initGoldPage();}
+function showPage(p){playClick();document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));$('page-'+p).classList.add('active');document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.page===p));document.querySelectorAll('.gn-item').forEach(el=>el.classList.toggle('active',el.dataset.page===p));gnSync();if(p==='accounts')renderAccounts();if(p==='history')renderHistory();if(p==='stats')renderStats();if(p==='budget')renderBudget();if(p==='invest')renderInvest();if(p==='settings')renderSettings();if(p==='tragop')renderTragop();if(p==='gold')initGoldPage();}
 
 /* ── MONTH ── */
 function changeMonth(d){viewMonth+=d;if(viewMonth>11){viewMonth=0;viewYear++;}if(viewMonth<0){viewMonth=11;viewYear--;}updateAll();}
@@ -942,6 +942,77 @@ function doInstall(){
 }
 // Hiện gợi ý cài đặt sau khi app đã vào, không chen vào lúc đang tải
 setTimeout(()=>{try{maybeShowInstall(true);}catch(e){}},3500);
+
+/* ════════════════════════════════════════════
+   LIQUID GLASS NAV — pill trượt + kéo-thả (iOS 26 style)
+════════════════════════════════════════════ */
+function gnItems(){const n=$('glassNav');return n?[].slice.call(n.querySelectorAll('.gn-item')):[];}
+// Đặt pill dưới 1 item (animated trừ khi đang kéo)
+function gnPlacePill(item,instant){
+  const nav=$('glassNav'),pill=$('gnPill');if(!nav||!pill||!item)return;
+  const nr=nav.getBoundingClientRect(),ir=item.getBoundingClientRect();
+  if(!ir.width)return;
+  if(instant)pill.classList.add('dragging');
+  pill.style.width=ir.width+'px';
+  pill.style.transform='translateX('+(ir.left-nr.left)+'px)';
+  if(instant){void pill.offsetWidth;pill.classList.remove('dragging');}
+}
+// Đồng bộ pill về item đang active (gọi sau showPage / resize / load)
+function gnSync(instant){
+  const items=gnItems();if(!items.length)return;
+  const active=$('glassNav').querySelector('.gn-item.active')||items[0];
+  // chờ layout sẵn sàng nếu nav vừa hiện
+  requestAnimationFrame(()=>gnPlacePill(active,instant));
+}
+// Kéo-thả: pill bám theo ngón tay, item gần nhất sáng lên, thả → snap + chuyển trang
+(function(){
+  const nav=$('glassNav');if(!nav)return;
+  let dragging=false,moved=false,startX=0,curIdx=-1;
+  function nearestIdx(clientX){
+    const items=gnItems();let best=0,bd=1e9;
+    items.forEach((it,i)=>{const r=it.getBoundingClientRect();const c=r.left+r.width/2;const d=Math.abs(clientX-c);if(d<bd){bd=d;best=i;}});
+    return best;
+  }
+  function highlight(i){const items=gnItems();items.forEach((it,k)=>it.classList.toggle('active',k===i));}
+  function followPill(clientX){
+    const items=gnItems();if(!items.length)return;
+    const nr=nav.getBoundingClientRect(),pill=$('gnPill');
+    const w=items[0].getBoundingClientRect().width;
+    let x=clientX-nr.left-w/2;
+    const pad=6,maxX=nr.width-pad-w;
+    x=Math.max(pad,Math.min(maxX,x));
+    pill.style.width=w+'px';pill.style.transform='translateX('+x+'px)';
+  }
+  function down(e){
+    dragging=true;moved=false;startX=e.clientX;
+    $('gnPill').classList.add('dragging');
+    curIdx=nearestIdx(e.clientX);highlight(curIdx);
+    try{nav.setPointerCapture(e.pointerId);}catch(_){}
+  }
+  function move(e){
+    if(!dragging)return;
+    if(Math.abs(e.clientX-startX)>3)moved=true;
+    const i=nearestIdx(e.clientX);
+    if(i!==curIdx){curIdx=i;highlight(i);hapticTap();}
+    followPill(e.clientX); // pill bám ngón tay → cảm giác "liquid"
+  }
+  function up(e){
+    if(!dragging)return;dragging=false;
+    const pill=$('gnPill');pill.classList.remove('dragging');
+    const items=gnItems();const i=nearestIdx((e&&e.clientX!=null)?e.clientX:startX);
+    const page=items[i]&&items[i].dataset.page;
+    gnPlacePill(items[i]); // snap mượt về item đích
+    if(page)showPage(page);
+  }
+  nav.addEventListener('pointerdown',down);
+  nav.addEventListener('pointermove',move);
+  nav.addEventListener('pointerup',up);
+  nav.addEventListener('pointercancel',()=>{dragging=false;$('gnPill').classList.remove('dragging');gnSync();});
+})();
+// Định vị pill khi load + khi xoay/đổi kích thước
+window.addEventListener('resize',()=>gnSync(true));
+window.addEventListener('orientationchange',()=>setTimeout(()=>gnSync(true),250));
+setTimeout(()=>gnSync(true),300); // sau khi nav hiện & font/emoji đo xong
 
 init();
 

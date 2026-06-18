@@ -4,7 +4,7 @@
    - Tài nguyên tĩnh (Chart.js CDN, Google Fonts, icon): CACHE-FIRST + cập nhật ngầm.
    - API dữ liệu (Apps Script) & API giá realtime: KHÔNG cache → luôn lấy số liệu mới.
    Đổi CACHE_VER mỗi khi muốn xoá cache cũ chắc chắn. */
-const CACHE_VER = 'finance-v5';
+const CACHE_VER = 'finance-v6';
 const SHELL = ['./', './index.html', './styles.css', './app.js', './manifest.json', './icon.svg', './icon-maskable.svg'];
 
 // CHỈ những host này (ngoài same-origin) mới được SW xử lý/cache (thư viện tĩnh).

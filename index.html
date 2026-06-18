@@ -50,15 +50,16 @@
   <div class="sidebar-bottom"><div class="opening-mini"><label>Số dư đầu kỳ (₫)</label><input type="number" id="openingBal" placeholder="0" step="1000" oninput="saveOpening();updateAll()"/></div></div>
 </nav>
 
-<div class="mobile-nav">
-  <button class="mob-nav-btn active" data-page="dashboard" onclick="showPage('dashboard')"><span>📊</span>Tổng</button>
-  <button class="mob-nav-btn" data-page="accounts" onclick="showPage('accounts')"><span>💳</span>Ví</button>
-  <button class="mob-nav-btn" data-page="invest" onclick="showPage('invest')"><span>📈</span>Đầu tư</button>
-  <button class="mob-nav-btn" data-page="gold" onclick="showPage('gold')"><span>🥇</span>Vàng</button>
-  <button class="mob-nav-btn" data-page="tragop" onclick="showPage('tragop')"><span>💰</span>Góp</button>
-  <button class="mob-nav-btn" data-page="history" onclick="showPage('history')"><span>📋</span>Lịch sử</button>
-  <button class="mob-nav-btn" data-page="settings" onclick="showPage('settings')"><span>⚙️</span>Cài đặt</button>
-</div>
+<nav class="glass-nav" id="glassNav" aria-label="Điều hướng">
+  <div class="gn-pill" id="gnPill"></div>
+  <button class="gn-item active" data-page="dashboard" aria-label="Thống kê"><span>📊</span></button>
+  <button class="gn-item" data-page="accounts" aria-label="Tài khoản"><span>💳</span></button>
+  <button class="gn-item" data-page="invest" aria-label="Đầu tư"><span>📈</span></button>
+  <button class="gn-item" data-page="gold" aria-label="Vàng"><span>🥇</span></button>
+  <button class="gn-item" data-page="tragop" aria-label="Trả góp"><span>💰</span></button>
+  <button class="gn-item" data-page="history" aria-label="Lịch sử"><span>📋</span></button>
+  <button class="gn-item" data-page="settings" aria-label="Cài đặt"><span>⚙️</span></button>
+</nav>
 
 <main class="main">
 
