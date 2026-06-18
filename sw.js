@@ -4,8 +4,8 @@
    - Tài nguyên tĩnh (Chart.js CDN, Google Fonts, icon): CACHE-FIRST + cập nhật ngầm.
    - API dữ liệu (Apps Script) & API giá realtime: KHÔNG cache → luôn lấy số liệu mới.
    Đổi CACHE_VER mỗi khi muốn xoá cache cũ chắc chắn. */
-const CACHE_VER = 'finance-v4';
-const SHELL = ['./', './manifest.json', './icon.svg', './icon-maskable.svg'];
+const CACHE_VER = 'finance-v5';
+const SHELL = ['./', './index.html', './styles.css', './app.js', './manifest.json', './icon.svg', './icon-maskable.svg'];
 
 // CHỈ những host này (ngoài same-origin) mới được SW xử lý/cache (thư viện tĩnh).
 // Mọi thứ khác — Apps Script JSONP, Firebase realtime/auth, API giá… — SW KHÔNG đụng tới.
@@ -39,17 +39,19 @@ self.addEventListener('fetch', e => {
   // API giá, mọi domain khác) → return: SW không đụng, tránh phá kết nối trên iOS.
   if (!sameOrigin && !CDN.test(url.hostname)) return;
 
-  // 2) HTML / điều hướng (same-origin) → network-first
+  // 2) Mọi tài nguyên SAME-ORIGIN (HTML điều hướng, app.js, styles.css, icon…) → NETWORK-FIRST
+  //    → online thì LUÔN nhận bản mới nhất; offline thì dùng cache. Không cần bump version thủ công.
   const accept = req.headers.get('accept') || '';
-  if (sameOrigin && (req.mode === 'navigate' || accept.includes('text/html'))) {
+  const isNav = (req.mode === 'navigate' || accept.includes('text/html'));
+  if (sameOrigin) {
     e.respondWith(
       fetch(req)
         .then(res => {
-          const cp = res.clone();
-          caches.open(CACHE_VER).then(c => c.put('./', cp)).catch(() => {});
+          const cp = res.clone(), cpNav = isNav ? res.clone() : null;
+          caches.open(CACHE_VER).then(c => { c.put(req, cp); if (cpNav) c.put('./', cpNav); }).catch(() => {});
           return res;
         })
-        .catch(() => caches.match('./').then(r => r || caches.match(req)))
+        .catch(() => caches.match(req).then(r => r || (isNav ? caches.match('./') : undefined)))
     );
     return;
   }
