@@ -486,6 +486,44 @@ body.privacy .val,body.privacy .tx-amt,body.privacy .metric-val,body.privacy .we
 .calc-btn.eq:hover{filter:brightness(1.1);}
 .calc-hint{margin-top:10px;font-size:9px;color:var(--text3);text-align:center;letter-spacing:.3px;}
 @media(max-width:768px){.calc-box{width:280px;}.calc-btn{height:44px;}}
+/* ── EDIT TRANSACTION MODAL ── */
+.edit-box{width:330px;max-width:calc(100vw - 32px);}
+.edit-box h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+.edit-field{margin-bottom:11px;}
+.edit-field label{font-size:10px;color:var(--text2);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px;}
+.edit-field input,.edit-field select{width:100%;background:var(--bg3);border:.5px solid var(--border2);border-radius:9px;color:var(--text);font-size:14px;font-family:inherit;padding:10px 11px;outline:none;-webkit-appearance:none;transition:border-color .2s,box-shadow .2s;}
+.edit-field input:focus,.edit-field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(93,202,165,.1);}
+.seg{display:flex;background:var(--bg3);border-radius:10px;padding:3px;gap:3px;}
+.seg button{flex:1;border:none;background:none;color:var(--text2);font-family:inherit;font-size:13px;font-weight:600;padding:8px 4px;border-radius:8px;cursor:pointer;transition:all .2s cubic-bezier(.22,1,.36,1);}
+.seg button.on{background:var(--bg);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.18);}
+.seg button.on[data-v="thu"]{color:var(--green);}
+.seg button.on[data-v="chi"],.seg button.on[data-v="extra"]{color:var(--red);}
+.edit-actions{display:flex;gap:8px;margin-top:16px;}
+.edit-actions .btn-full{flex:1;}
+.edit-del{flex:0 0 auto;padding:13px 16px;border-radius:10px;border:.5px solid var(--red);background:var(--red-bg);color:var(--red);font-family:inherit;font-size:14px;cursor:pointer;}
+/* ── HISTORY: search + summary ── */
+.filter-search{position:relative;flex:1;min-width:150px;}
+.filter-search input{width:100%;padding-left:30px;}
+.filter-search::before{content:'🔍';position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:12px;opacity:.6;pointer-events:none;}
+.filter-summary{font-size:11px;color:var(--text2);margin:-4px 0 12px;display:flex;gap:12px;flex-wrap:wrap;}
+.filter-summary b{color:var(--text);font-weight:600;}
+.tx-table tbody tr{cursor:pointer;transition:background .15s;}
+.tx-table tbody tr:active{background:rgba(128,128,128,.08);}
+/* ── PULL TO REFRESH ── */
+#ptr{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;justify-content:center;height:56px;transform:translateY(-56px);opacity:0;z-index:120;pointer-events:none;color:var(--text2);font-size:12px;gap:8px;}
+#ptr .ptr-spin{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;transition:transform .15s;}
+#ptr.ready .ptr-spin{border-top-color:var(--green);transform:rotate(180deg);}
+#ptr.spinning .ptr-spin{animation:spin .7s linear infinite;}
+/* ── INSTALL / ADD-TO-HOME BANNER ── */
+#installBanner{display:none;position:fixed;left:0;right:0;bottom:0;z-index:140;padding:0 calc(var(--safe-right) + 12px) calc(var(--safe-bot) + 12px) calc(var(--safe-left) + 12px);}
+#installBanner .ib-card{background:var(--bg2);border:.5px solid var(--border2);border-radius:16px;padding:13px 14px;box-shadow:0 16px 50px rgba(0,0,0,.4);display:flex;align-items:center;gap:11px;animation:slideDown .35s cubic-bezier(.22,1,.36,1) both;backdrop-filter:blur(22px) saturate(1.5);-webkit-backdrop-filter:blur(22px) saturate(1.5);}
+#installBanner .ib-ico{font-size:26px;flex-shrink:0;}
+#installBanner .ib-txt{flex:1;font-size:12px;line-height:1.45;color:var(--text2);}
+#installBanner .ib-txt b{color:var(--text);font-weight:600;}
+#installBanner .ib-x{flex-shrink:0;background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:4px 6px;font-family:inherit;}
+#installBanner .ib-go{flex-shrink:0;background:linear-gradient(135deg,var(--green),var(--accent));border:none;color:#fff;font-weight:600;font-size:13px;padding:9px 14px;border-radius:10px;font-family:inherit;cursor:pointer;}
+/* trên mobile: nâng banner lên trên thanh nav dưới để không che điều hướng */
+@media(max-width:768px){#installBanner{bottom:calc(var(--safe-bot) + 60px);padding-bottom:8px;}}
 </style>
 </head>
 <body data-theme="dark">
@@ -620,11 +658,17 @@ body.privacy .val,body.privacy .tx-amt,body.privacy .metric-val,body.privacy .we
 <div id="page-history" class="page">
   <div class="topbar"><div class="topbar-left"><h1>📋 Lịch sử</h1><div class="sub">Toàn bộ giao dịch</div></div><button class="btn" onclick="exportCSV()">↓ CSV</button></div>
   <div class="filter-row">
+    <span class="filter-search"><input type="search" id="filterText" placeholder="Tìm ghi chú / danh mục…" oninput="renderHistory()"/></span>
+  </div>
+  <div class="filter-row">
     <select id="filterType" onchange="renderHistory()"><option value="all">Tất cả</option><option value="thu">Thu</option><option value="chi">Chi</option><option value="chi-normal">Chi thường</option><option value="chi-extra">Chi ngoài</option></select>
     <select id="filterCat" onchange="renderHistory()"></select>
     <input type="month" id="filterMonth" onchange="renderHistory()"/>
+    <input type="number" id="filterMin" inputmode="numeric" placeholder="Từ (k)" oninput="renderHistory()" style="width:78px"/>
+    <input type="number" id="filterMax" inputmode="numeric" placeholder="Đến (k)" oninput="renderHistory()" style="width:78px"/>
     <button class="btn" onclick="resetFilters()">Reset</button>
   </div>
+  <div class="filter-summary" id="filterSummary"></div>
   <div class="card"><div class="table-scroll"><table class="tx-table"><thead><tr><th>Ngày</th><th>Loại</th><th>Danh mục</th><th>Mô tả</th><th style="text-align:right">Tiền</th><th></th></tr></thead><tbody id="historyBody"></tbody></table></div></div>
 </div>
 
@@ -792,6 +836,45 @@ body.privacy .val,body.privacy .tx-amt,body.privacy .metric-val,body.privacy .we
 <!-- HAPTIC (iOS 17.4+): bật/tắt 1 <input switch> ẩn để kích rung hệ thống khi chạm nút -->
 <input type="checkbox" id="hapticSwitch" switch aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:0;height:0;opacity:0;pointer-events:none;">
 <label for="hapticSwitch" id="hapticLabel" aria-hidden="true" style="position:absolute;left:-9999px;width:0;height:0;opacity:0;pointer-events:none;"></label>
+
+<!-- PULL-TO-REFRESH indicator -->
+<div id="ptr"><span class="ptr-spin"></span><span id="ptrMsg">Kéo để làm mới</span></div>
+
+<!-- EDIT TRANSACTION modal -->
+<div class="calc-overlay" id="editOverlay" onclick="if(event.target===this)closeEditTx()">
+  <div class="calc-box edit-box">
+    <h3>✏️ Sửa giao dịch</h3>
+    <div class="edit-field">
+      <label>Loại</label>
+      <div class="seg" id="editTypeSeg">
+        <button type="button" data-v="thu" onclick="setEditType('thu')">Thu</button>
+        <button type="button" data-v="chi" onclick="setEditType('chi')">Chi</button>
+      </div>
+    </div>
+    <div class="edit-field" id="editBudgetRow">
+      <label>Loại chi</label>
+      <div class="seg" id="editBudgetSeg">
+        <button type="button" data-v="normal" onclick="setEditBudget('normal')">Chi thường</button>
+        <button type="button" data-v="extra" onclick="setEditBudget('extra')">Chi ngoài</button>
+      </div>
+    </div>
+    <div class="edit-field"><label>Danh mục</label><select id="editCat"></select></div>
+    <div class="edit-field"><label>Số tiền (nghìn — ví dụ 50 = 50.000₫)</label><input type="number" id="editAmt" inputmode="numeric"/></div>
+    <div class="edit-field"><label>Ghi chú</label><input type="text" id="editNote" placeholder="Ghi chú…"/></div>
+    <div class="edit-actions">
+      <button type="button" class="edit-del" onclick="deleteEditTx()" title="Xoá giao dịch">🗑</button>
+      <button type="button" class="btn-full" onclick="saveEditTx()">Lưu thay đổi</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD TO HOME SCREEN banner -->
+<div id="installBanner"><div class="ib-card">
+  <span class="ib-ico">📲</span>
+  <div class="ib-txt" id="installText"></div>
+  <button class="ib-go" id="installGo" onclick="doInstall()" style="display:none;">Cài đặt</button>
+  <button class="ib-x" onclick="dismissInstall()" aria-label="Đóng">✕</button>
+</div></div>
 
 <!-- Chart.js tải sau khi splash đã hiện (không chặn lần sơn đầu) nhưng trước script chính -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
@@ -990,7 +1073,7 @@ function addTx(type){
   updateAll();playSuccess();showToast(type==='thu'?'Thu: +'+fmt(amt):(chiType==='extra'?'Chi ngoài: -':'Chi: -')+fmt(amt),type==='thu');cloudAddTx(tx);
   if(tx.budgetType==='extra')cloudSaveSettings();
 }
-function deleteTx(id){txData=txData.filter(t=>t.id!==id);save();updateAll();if($('page-history').classList.contains('active'))renderHistory();playClick();cloudDeleteTx(id);}
+function deleteTx(id){const t=txData.find(x=>String(x.id)===String(id));if(!t)return;if(!confirm('Xoá giao dịch này?'))return;txData=txData.filter(x=>String(x.id)!==String(id));save();updateAll();if($('page-history').classList.contains('active'))renderHistory();playClick();cloudDeleteTx(t.id);}
 function clearMonth(){
   const toDelete=txData.filter(t=>{const d=new Date(t.date);return d.getMonth()===viewMonth&&d.getFullYear()===viewYear;});
   txData=txData.filter(t=>{const d=new Date(t.date);return!(d.getMonth()===viewMonth&&d.getFullYear()===viewYear);});
@@ -1026,7 +1109,7 @@ function updateAll(){
 
 function renderMonthList(txs){
   const el=$('monthList');if(!txs.length){el.innerHTML='<div class="empty">Chưa có giao dịch</div>';return;}
-  el.innerHTML=[...txs].reverse().map(t=>`<div class="tx-item"><div class="tx-left"><div class="tx-dot ${t.type==='thu'?'green':'red'}"></div><div class="tx-info"><div class="tx-note">${t.note}${t.budgetType==='extra'?'<span class="badge-extra">ngoài</span>':''}</div><div class="tx-meta">${t.cat} · ${dateStr(t.date)} ${timeStr(t.date)}</div></div></div><div class="tx-right"><span class="tx-amt ${t.type==='thu'?'val-green':'val-red'}">${t.type==='thu'?'+':'-'}${fmt(t.amount)}</span><span class="tx-del" onclick="deleteTx(${t.id})">✕</span></div></div>`).join('');
+  el.innerHTML=[...txs].reverse().map(t=>`<div class="tx-item" style="cursor:pointer" onclick="openEditTx('${t.id}')"><div class="tx-left"><div class="tx-dot ${t.type==='thu'?'green':'red'}"></div><div class="tx-info"><div class="tx-note">${t.note}${t.budgetType==='extra'?'<span class="badge-extra">ngoài</span>':''}</div><div class="tx-meta">${t.cat} · ${dateStr(t.date)} ${timeStr(t.date)}</div></div></div><div class="tx-right"><span class="tx-amt ${t.type==='thu'?'val-green':'val-red'}">${t.type==='thu'?'+':'-'}${fmt(t.amount)}</span><span class="tx-del" onclick="event.stopPropagation();deleteTx('${t.id}')">✕</span></div></div>`).join('');
 }
 function renderMonthChart(txs){
   if(typeof Chart==='undefined')return; // Chart.js chưa nạp xong → bỏ qua, tránh crash init()
@@ -1050,8 +1133,27 @@ function renderMonthChart(txs){
 }
 
 /* ── HISTORY ── */
-function resetFilters(){$('filterType').value='all';$('filterCat').value='all';$('filterMonth').value='';renderHistory();}
-function renderHistory(){let f=[...txData].reverse();const type=$('filterType').value,cat=$('filterCat').value,month=$('filterMonth').value;if(type==='thu')f=f.filter(t=>t.type==='thu');else if(type==='chi')f=f.filter(t=>t.type==='chi');else if(type==='chi-normal')f=f.filter(t=>t.type==='chi'&&t.budgetType!=='extra');else if(type==='chi-extra')f=f.filter(t=>t.type==='chi'&&t.budgetType==='extra');if(cat!=='all')f=f.filter(t=>t.cat===cat);if(month)f=f.filter(t=>t.date.slice(0,7)===month);const b=$('historyBody');if(!f.length){b.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px">Không có</td></tr>';return;}b.innerHTML=f.map(t=>`<tr><td style="color:var(--text2)">${fullDate(t.date)} ${timeStr(t.date)}</td><td><span class="badge ${t.type==='thu'?'badge-green':'badge-red'}">${t.type==='thu'?'Thu':t.budgetType==='extra'?'Chi ngoài':'Chi'}</span></td><td style="color:var(--text2)">${t.cat}</td><td>${t.note}</td><td style="text-align:right;font-weight:500" class="${t.type==='thu'?'val-green':'val-red'}">${t.type==='thu'?'+':'-'}${fmt(t.amount)}</td><td><span class="tx-del" onclick="deleteTx(${t.id})">✕</span></td></tr>`).join('');}
+function resetFilters(){$('filterType').value='all';$('filterCat').value='all';$('filterMonth').value='';if($('filterText'))$('filterText').value='';if($('filterMin'))$('filterMin').value='';if($('filterMax'))$('filterMax').value='';renderHistory();}
+function renderHistory(){
+  let f=[...txData].reverse();
+  const type=$('filterType').value,cat=$('filterCat').value,month=$('filterMonth').value;
+  const q=(($('filterText')&&$('filterText').value)||'').trim().toLowerCase();
+  const minK=parseFloat($('filterMin')&&$('filterMin').value),maxK=parseFloat($('filterMax')&&$('filterMax').value);
+  const min=isNaN(minK)?null:minK*1000,max=isNaN(maxK)?null:maxK*1000;
+  if(type==='thu')f=f.filter(t=>t.type==='thu');else if(type==='chi')f=f.filter(t=>t.type==='chi');else if(type==='chi-normal')f=f.filter(t=>t.type==='chi'&&t.budgetType!=='extra');else if(type==='chi-extra')f=f.filter(t=>t.type==='chi'&&t.budgetType==='extra');
+  if(cat!=='all')f=f.filter(t=>t.cat===cat);
+  if(month)f=f.filter(t=>t.date.slice(0,7)===month);
+  if(q)f=f.filter(t=>((t.note||'')+' '+(t.cat||'')).toLowerCase().includes(q));
+  if(min!=null)f=f.filter(t=>t.amount>=min);
+  if(max!=null)f=f.filter(t=>t.amount<=max);
+  // Tóm tắt kết quả lọc
+  const sum=$('filterSummary');
+  if(sum){const tThu=f.filter(t=>t.type==='thu').reduce((s,t)=>s+t.amount,0),tChi=f.filter(t=>t.type==='chi').reduce((s,t)=>s+t.amount,0);
+    sum.innerHTML=f.length?`<span><b>${f.length}</b> giao dịch</span><span>Thu <b class="val-green">+${fmt(tThu)}</b></span><span>Chi <b class="val-red">-${fmt(tChi)}</b></span>`:'';}
+  const b=$('historyBody');
+  if(!f.length){b.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px">Không có giao dịch khớp bộ lọc</td></tr>';return;}
+  b.innerHTML=f.map(t=>`<tr onclick="openEditTx('${t.id}')"><td style="color:var(--text2)">${fullDate(t.date)} ${timeStr(t.date)}</td><td><span class="badge ${t.type==='thu'?'badge-green':'badge-red'}">${t.type==='thu'?'Thu':t.budgetType==='extra'?'Chi ngoài':'Chi'}</span></td><td style="color:var(--text2)">${t.cat}</td><td>${t.note}</td><td style="text-align:right;font-weight:500" class="${t.type==='thu'?'val-green':'val-red'}">${t.type==='thu'?'+':'-'}${fmt(t.amount)}</td><td><span class="tx-del" onclick="event.stopPropagation();deleteTx('${t.id}')">✕</span></td></tr>`).join('');
+}
 
 /* ── STATS ── */
 function renderStats(){const last7=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return d.toISOString().slice(0,10);});const thuD=last7.map(d=>txData.filter(t=>t.type==='thu'&&t.date.slice(0,10)===d).reduce((s,t)=>s+t.amount,0));const chiD=last7.map(d=>txData.filter(t=>t.type==='chi'&&t.date.slice(0,10)===d).reduce((s,t)=>s+t.amount,0));const lab=last7.map(d=>{const dd=new Date(d+'T00:00');return dd.getDate()+'/'+(dd.getMonth()+1);});if(charts.week)charts.week.destroy();charts.week=new Chart($('weekChart'),{type:'bar',data:{labels:lab,datasets:[{label:'Thu',data:thuD,backgroundColor:'rgba(29,158,117,.7)',borderRadius:4},{label:'Chi',data:chiD,backgroundColor:'rgba(216,90,48,.7)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#888780',font:{size:10},boxWidth:8}}},scales:{x:{grid:{display:false},ticks:{color:'#555',font:{size:10}}},y:{grid:{color:'rgba(128,128,128,.1)'},ticks:{color:'#555',font:{size:10},callback:v=>fmtShort(v)}}}}});const ct=catsChi.map(c=>txData.filter(t=>t.cat===c.name).reduce((s,t)=>s+t.amount,0));if(charts.cat)charts.cat.destroy();charts.cat=new Chart($('catChart'),{type:'bar',data:{labels:catsChi.map(c=>c.emoji+' '+c.name),datasets:[{data:ct,backgroundColor:catsChi.map(c=>c.color),borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(128,128,128,.1)'},ticks:{color:'#555',font:{size:10},callback:v=>fmtShort(v)}},y:{grid:{display:false},ticks:{color:'#888780',font:{size:10}}}}}});const total=ct.reduce((s,v)=>s+v,0);$('catBreakdown').innerHTML=catsChi.map((c,i)=>{const pct=total>0?Math.round(ct[i]/total*100):0;return `<div class="stats-cat-row"><span>${c.emoji} ${c.name}</span><div style="flex:1;display:flex;align-items:center;gap:6px;margin:0 12px"><div class="cat-bar-wrap" style="flex:1"><div class="cat-bar" style="width:${pct}%;background:${c.color}"></div></div><span style="font-size:10px;color:var(--text2)">${pct}%</span></div><span style="font-weight:500;color:${c.color}">${fmt(ct[i])}</span></div>`;}).join('');$('statsPeriod').textContent='7 ngày + toàn bộ';renderHeatmap();}
@@ -1590,6 +1692,104 @@ function fbSkip(){hideLogin();showToast('Dùng offline — dữ liệu chỉ lư
 function fbLogout(){if(FB.auth)FB.auth.signOut();fbDetach();showToast('Đã đăng xuất');showLogin();fbUpdateSettingsUI();}
 function fbErrMsg(err){const c=(err&&err.code)||'';if(/wrong-password|invalid-credential|invalid-login/.test(c))return'Sai email hoặc mật khẩu';if(/user-not-found/.test(c))return'Tài khoản không tồn tại';if(/too-many-requests/.test(c))return'Thử lại sau ít phút';if(/network/.test(c))return'Lỗi mạng — kiểm tra kết nối';if(/invalid-email/.test(c))return'Email không hợp lệ';return(err&&err.message)||'Đăng nhập lỗi';}
 function fbUpdateSettingsUI(){const el=$('fbStatus');if(!el)return;if(!fbActive){el.innerHTML='<div style="font-size:11px;color:var(--text3);">Firebase chưa sẵn sàng (kiểm tra mạng / cấu hình).</div>';return;}if(FB.uid){const em=(FB.auth&&FB.auth.currentUser&&FB.auth.currentUser.email)||'';el.innerHTML='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px rgba(29,158,117,.5);flex-shrink:0;"></span><span style="font-size:11px;color:var(--text2);flex:1;min-width:120px;">Đã đăng nhập: <b style="color:var(--text)">'+em+'</b><br>Đồng bộ real-time đang bật ✓</span><button class="btn btn-red" onclick="fbLogout()">Đăng xuất</button></div>';}else{el.innerHTML='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:11px;color:var(--text2);flex:1;">Chưa đăng nhập.</span><button class="btn btn-accent" onclick="showLogin()">Đăng nhập</button></div>';}}
+
+/* ════════════════════════════════════════════
+   SỬA GIAO DỊCH (tap vào 1 giao dịch để chỉnh)
+════════════════════════════════════════════ */
+let _editId=null,_editType='chi',_editBudget='normal';
+function findTx(id){return txData.find(x=>String(x.id)===String(id));}
+function setEditType(ty){_editType=ty;[...document.querySelectorAll('#editTypeSeg button')].forEach(b=>b.classList.toggle('on',b.dataset.v===ty));$('editBudgetRow').style.display=ty==='chi'?'':'none';renderEditCats();}
+function setEditBudget(v){_editBudget=v;[...document.querySelectorAll('#editBudgetSeg button')].forEach(b=>b.classList.toggle('on',b.dataset.v===v));}
+function renderEditCats(keep){
+  const list=_editType==='thu'?catsThu:catsChi;const sel=keep!=null?keep:$('editCat').value;
+  let html=list.map(c=>`<option value="${c.name}"${c.name===sel?' selected':''}>${c.emoji} ${c.name}</option>`).join('');
+  if(sel&&!list.some(c=>c.name===sel))html+=`<option value="${sel}" selected>${sel} (đã xoá)</option>`;
+  $('editCat').innerHTML=html;
+}
+function openEditTx(id){
+  const t=findTx(id);if(!t)return;
+  _editId=t.id;_editType=t.type;_editBudget=t.budgetType==='extra'?'extra':'normal';
+  setEditType(t.type);setEditBudget(_editBudget);renderEditCats(t.cat);
+  $('editAmt').value=t.amount/1000;$('editNote').value=t.note||'';
+  $('editOverlay').classList.add('show');
+}
+function closeEditTx(){$('editOverlay').classList.remove('show');_editId=null;}
+function saveEditTx(){
+  const t=findTx(_editId);if(!t){closeEditTx();return;}
+  const amt=smartAmount($('editAmt').value);
+  if(!amt||amt<=0){showToast('Nhập số tiền hợp lệ',false);return;}
+  t.type=_editType;t.cat=$('editCat').value;t.amount=amt;t.note=$('editNote').value.trim()||t.cat;
+  if(_editType==='chi')t.budgetType=_editBudget;else delete t.budgetType;
+  save();updateAll();
+  if($('page-history').classList.contains('active'))renderHistory();
+  if(!fbActive&&syncConnected)cloudPushAll(); // Apps Script: đẩy lại toàn bộ (Firebase đã tự sync qua save())
+  closeEditTx();playSuccess();showToast('Đã cập nhật giao dịch ✓');
+}
+function deleteEditTx(){if(_editId==null)return;const id=_editId;closeEditTx();deleteTx(id);}
+
+/* ════════════════════════════════════════════
+   PULL-TO-REFRESH (kéo xuống ở đầu trang để làm mới)
+════════════════════════════════════════════ */
+(function(){
+  let startY=0,pulling=false,ready=false;const THRESH=68;
+  const el=()=>$('ptr');
+  const modalOpen=()=>document.querySelector('.calc-overlay.show');
+  document.addEventListener('touchstart',e=>{
+    if(window.scrollY>0||e.touches.length!==1||modalOpen())return;
+    startY=e.touches[0].clientY;pulling=true;ready=false;
+  },{passive:true});
+  document.addEventListener('touchmove',e=>{
+    if(!pulling)return;
+    const dy=e.touches[0].clientY-startY;
+    if(dy<=0||window.scrollY>0){pulling=false;const p=el();if(p){p.style.transform='';p.style.opacity='';}return;}
+    const pull=Math.min(dy*0.5,76);const p=el();
+    if(p){p.style.transform='translateY('+pull+'px)';p.style.opacity=Math.min(1,pull/THRESH);p.classList.toggle('ready',pull>=THRESH);}
+    if(pull>=THRESH&&!ready){ready=true;hapticTap();}else if(pull<THRESH){ready=false;}
+    if($('ptrMsg'))$('ptrMsg').textContent=ready?'Thả ra để làm mới':'Kéo để làm mới';
+  },{passive:true});
+  document.addEventListener('touchend',()=>{
+    if(!pulling)return;pulling=false;const p=el();
+    if(ready)doPullRefresh();else if(p){p.style.transform='';p.style.opacity='';p.classList.remove('ready');}
+  },{passive:true});
+})();
+function doPullRefresh(){
+  const p=$('ptr');if(p){p.style.transform='translateY(56px)';p.style.opacity='1';p.classList.add('spinning');p.classList.remove('ready');}
+  if($('ptrMsg'))$('ptrMsg').textContent='Đang làm mới…';
+  const done=function(msg){const q=$('ptr');if(q){q.classList.remove('spinning');q.style.transform='';q.style.opacity='';}if(msg)showToast(msg);};
+  try{
+    if(fbActive&&FB.ref){FB.ref.once('value').then(s=>{const v=s.val();if(v)fbApply(v);updateAll();done('Đã làm mới ✓');}).catch(()=>done('Lỗi làm mới'));}
+    else if(syncConnected){cloudPull(false,true).then(()=>done('Đã làm mới ✓')).catch(()=>done('Lỗi làm mới'));}
+    else{updateAll();setTimeout(()=>done('Đã làm mới ✓'),350);}
+  }catch(e){done('Lỗi làm mới');}
+}
+
+/* ════════════════════════════════════════════
+   ONBOARDING: Thêm vào Màn hình chính (PWA)
+════════════════════════════════════════════ */
+let _deferredPrompt=null;
+function isStandalone(){return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;}
+function isiOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent);}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();_deferredPrompt=e;maybeShowInstall(false);});
+function maybeShowInstall(iosOnly){
+  if(isStandalone())return;                                   // đã cài → không hiện
+  if(localStorage.getItem('fin_install_dismissed')==='1')return;
+  const b=$('installBanner');if(!b)return;
+  if(_deferredPrompt){ // Android/Chrome: có nút cài thật
+    $('installText').innerHTML='Cài <b>Finance</b> như một app để chạy nhanh & toàn màn hình.';
+    $('installGo').style.display='';
+  }else if(isiOS()){   // iOS Safari: chỉ hướng dẫn (không có API cài)
+    $('installText').innerHTML='Thêm <b>Finance</b> vào Màn hình chính để có haptic, thanh trạng thái trong suốt & mở toàn màn hình: bấm nút <b>Chia sẻ</b> ⬆️ rồi chọn <b>“Thêm vào MH chính”</b>.';
+    $('installGo').style.display='none';
+  }else{return;}
+  b.style.display='block';
+}
+function dismissInstall(){localStorage.setItem('fin_install_dismissed','1');const b=$('installBanner');if(b)b.style.display='none';hapticTap();}
+function doInstall(){
+  if(_deferredPrompt){_deferredPrompt.prompt();_deferredPrompt.userChoice.finally(()=>{_deferredPrompt=null;dismissInstall();});}
+  else{dismissInstall();}
+}
+// Hiện gợi ý cài đặt sau khi app đã vào, không chen vào lúc đang tải
+setTimeout(()=>{try{maybeShowInstall(true);}catch(e){}},3500);
 
 init();
 
