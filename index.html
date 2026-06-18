@@ -1592,7 +1592,7 @@ if(installments.length&&!installmentsTs){installmentsTs=new Date().toISOString()
 ════════════════════════════════════════════ */
 var fbActive=false;
 const FIREBASE_CONFIG={apiKey:"AIzaSyDTGFDXo390dH3sIZMBmw4J6E6XtBYuTY8",authDomain:"finance-fb03b.firebaseapp.com",databaseURL:"https://finance-fb03b-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"finance-fb03b",storageBucket:"finance-fb03b.firebasestorage.app",messagingSenderId:"724966318747",appId:"1:724966318747:web:4426dc76d0ec7780a21c3e",measurementId:"G-P6QS10PJ35"};
-const FB={auth:null,db:null,ref:null,uid:null,_pushSig:null,_applying:false,_seeded:false,_saveTimer:null,_shown:false};
+const FB={auth:null,db:null,ref:null,uid:null,_pushSig:null,_applying:false,_seeded:false,_saveTimer:null,_shown:false,_lastSynced:null};
 
 function fbConfigured(){return typeof firebase!=='undefined'&&FIREBASE_CONFIG&&!!FIREBASE_CONFIG.databaseURL;}
 
@@ -1635,15 +1635,49 @@ function fbSig(d){
   const s=typeof d.settings==='string'?d.settings:JSON.stringify(d.settings||{});
   return t+'#'+i+'#'+a+'#'+s;
 }
+// Chuỗi hoá ổn định (sắp key) → so sánh không phụ thuộc thứ tự key (Firebase trả khác thứ tự local)
+function stableStr(o){if(o===null||typeof o!=='object')return JSON.stringify(o);if(Array.isArray(o))return '['+o.map(stableStr).join(',')+']';return '{'+Object.keys(o).sort().map(function(k){return JSON.stringify(k)+':'+stableStr(o[k]);}).join(',')+'}';}
+// Cây dữ liệu hiện tại của máy (dạng object keyed-by-id) để diff/ghi từng nhánh
+function fbTree(){
+  const txObj={};txData.forEach(function(t){if(t&&t.id!=null)txObj[String(t.id)]=t;});
+  const invObj={};investments.forEach(function(i){if(i&&i.id!=null)invObj[String(i.id)]=i;});
+  const accObj={};accounts.forEach(function(a){if(a&&a.id!=null)accObj[String(a.id)]=a;});
+  const settingsObj={opening:opening,catsChi:catsChi,catsThu:catsThu,budgets:budgets,monthMoney:monthMoneyData||null,installments:installments};
+  return {transactions:txObj,investments:invObj,accounts:accObj,settings:JSON.stringify(settingsObj)};
+}
+// Hợp nhất theo từng-mục: bắt đầu từ server, GIỮ mục mới thêm cục bộ (chưa kịp đẩy),
+// BỎ mục đã xoá cục bộ (chưa kịp đẩy). Nhờ vậy đổi máy/đổi mục KHÁC nhau không mất dữ liệu.
+function fbMergeColl(localArr,serverObj,lastObj){
+  const out={};const sv=serverObj||{},last=lastObj||{};
+  Object.keys(sv).forEach(function(id){out[id]=sv[id];});
+  const localById={};localArr.forEach(function(x){if(x&&x.id!=null)localById[String(x.id)]=x;});
+  localArr.forEach(function(x){if(x&&x.id!=null){var id=String(x.id);if(!(id in out)&&!(id in last))out[id]=x;}}); // thêm cục bộ chưa có trên server
+  Object.keys(last).forEach(function(id){if(!(id in localById)&&(id in out))delete out[id];});               // xoá cục bộ chưa propagate
+  return Object.keys(out).map(function(k){return out[k];});
+}
+// Diff 2 cây → object multi-path cho FB.ref.update() (chỉ ghi nhánh thay đổi/xoá)
+function fbDiff(prev,cur){
+  const up={};
+  ['transactions','investments','accounts'].forEach(function(coll){
+    const p=prev[coll]||{},c=cur[coll]||{};
+    Object.keys(c).forEach(function(id){if(stableStr(c[id])!==stableStr(p[id]))up[coll+'/'+id]=c[id];});
+    Object.keys(p).forEach(function(id){if(!(id in c))up[coll+'/'+id]=null;});
+  });
+  if(prev.settings!==cur.settings)up['settings']=cur.settings;
+  return up;
+}
 
 function fbApply(val){
   const sig=fbSig({transactions:val.transactions,investments:val.investments,accounts:val.accounts,settings:val.settings});
-  if(sig===FB._pushSig){hideSplash();return;} // chính mình vừa ghi → bỏ qua
+  const serverTree={transactions:val.transactions||{},investments:val.investments||{},accounts:val.accounts||{},settings:(typeof val.settings==='string'?val.settings:JSON.stringify(val.settings||{}))};
+  if(sig===FB._pushSig){FB._lastSynced=serverTree;hideSplash();return;} // chính mình vừa ghi → chỉ cập nhật mốc đồng bộ
   FB._applying=true;
   try{
-    txData=Object.keys(val.transactions||{}).map(function(k){return val.transactions[k];}).sort(function(a,b){return (a.id||0)-(b.id||0);});
-    investments=Object.keys(val.investments||{}).map(function(k){return val.investments[k];});
-    accounts=Object.keys(val.accounts||{}).map(function(k){return val.accounts[k];});
+    const last=FB._lastSynced||{};
+    // Hợp nhất theo từng-mục (không ghi đè cả cây) → an toàn khi 2 máy sửa mục khác nhau
+    txData=fbMergeColl(txData,val.transactions,last.transactions).sort(function(a,b){return (a.id||0)-(b.id||0);});
+    investments=fbMergeColl(investments,val.investments,last.investments);
+    accounts=fbMergeColl(accounts,val.accounts,last.accounts);
     let s={};try{s=val.settings?(typeof val.settings==='string'?JSON.parse(val.settings):val.settings):{};}catch(e){s={};}
     opening=s.opening||0;if($('openingBal'))$('openingBal').value=opening||'';
     if(s.catsChi)catsChi=s.catsChi;
@@ -1659,6 +1693,7 @@ function fbApply(val){
     localStorage.setItem('fin_budgets',JSON.stringify(budgets));
     if(monthMoneyData)localStorage.setItem('fin_month_money',JSON.stringify(monthMoneyData));else localStorage.removeItem('fin_month_money');
     localStorage.setItem('fin_installments',JSON.stringify(installments));
+    FB._lastSynced=serverTree; // mốc = sự thật trên server (các mục pending cục bộ sẽ được đẩy ở lần save kế)
     FB._pushSig=sig;
   }catch(e){console.warn('fb apply',e);}
   FB._applying=false;
@@ -1666,6 +1701,8 @@ function fbApply(val){
   const ap=document.querySelector('.page.active');
   if(ap){const id=ap.id.replace('page-','');const map={tragop:renderTragop,history:renderHistory,invest:renderInvest,accounts:renderAccounts,stats:renderStats,budget:renderBudget,settings:renderSettings};try{(map[id]||function(){})();}catch(e){}}
   hideSplash();
+  // Có mục pending cục bộ chưa có trên server? → đẩy ngay để hội tụ
+  try{if(Object.keys(fbDiff(serverTree,fbTree())).length)fbSaveAll();}catch(e){}
 }
 
 function fbSaveAll(immediate){
@@ -1673,13 +1710,15 @@ function fbSaveAll(immediate){
   clearTimeout(FB._saveTimer);
   const run=function(){
     if(!FB.ref)return;
-    const txObj={};txData.forEach(function(t){if(t&&t.id!=null)txObj[t.id]=t;});
-    const invObj={};investments.forEach(function(i){if(i&&i.id!=null)invObj[i.id]=i;});
-    const accObj={};accounts.forEach(function(a){if(a&&a.id!=null)accObj[a.id]=a;});
-    const settingsObj={opening:opening,catsChi:catsChi,catsThu:catsThu,budgets:budgets,monthMoney:monthMoneyData||null,installments:installments};
-    const data={transactions:txObj,investments:invObj,accounts:accObj,settings:JSON.stringify(settingsObj)};
-    FB._pushSig=fbSig(data);
-    FB.ref.set(data).catch(function(e){console.warn('fb save',e);});
+    const cur=fbTree();
+    FB._pushSig=fbSig(cur);
+    const prev=FB._lastSynced;
+    FB._lastSynced=cur; // optimistic — nếu lỗi sẽ reset để full-sync lại
+    const onErr=function(e){console.warn('fb save',e);FB._lastSynced=null;};
+    if(!prev){FB.ref.set(cur).catch(onErr);return;}            // lần đầu / seed → ghi nguyên cây
+    const up=fbDiff(prev,cur);
+    if(!Object.keys(up).length)return;                          // không có gì đổi
+    FB.ref.update(up).catch(onErr);                             // CHỈ ghi nhánh thay đổi → không đè dữ liệu máy khác
   };
   if(immediate)run();else FB._saveTimer=setTimeout(run,300);
 }
