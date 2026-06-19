@@ -25,13 +25,19 @@
 <div id="fbLogin"><div class="fb-box">
   <div style="font-size:34px;text-align:center;margin-bottom:6px;">💰</div>
   <h2>Finance</h2>
-  <div class="fb-sub">Đăng nhập để đồng bộ real-time giữa các thiết bị</div>
-  <form onsubmit="fbDoLogin(event)">
+  <div class="fb-sub" id="fbSub">Đăng nhập để đồng bộ real-time giữa các thiết bị</div>
+  <div class="fb-seg" id="fbSeg">
+    <button type="button" class="on" data-mode="login" onclick="setAuthMode('login')">Đăng nhập</button>
+    <button type="button" data-mode="signup" onclick="setAuthMode('signup')">Đăng ký</button>
+  </div>
+  <form onsubmit="fbSubmitAuth(event)">
+    <input id="fbName" type="text" placeholder="Tên hiển thị (tuỳ chọn)" autocomplete="name" style="display:none;">
     <input id="fbEmail" type="email" placeholder="Email" autocomplete="username" inputmode="email">
     <input id="fbPass" type="password" placeholder="Mật khẩu" autocomplete="current-password">
-    <button type="submit" class="fb-go">Đăng nhập</button>
+    <button type="submit" class="fb-go" id="fbGoBtn">Đăng nhập</button>
   </form>
   <div class="fb-err" id="fbLoginErr"></div>
+  <span class="fb-forgot" id="fbForgot" onclick="fbForgotPassword()">Quên mật khẩu?</span>
   <span class="fb-skip" onclick="fbSkip()">Dùng offline (không đồng bộ)</span>
 </div></div>
 <div class="video-bg"><canvas id="scifiBg"></canvas></div>

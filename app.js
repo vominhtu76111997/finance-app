@@ -839,10 +839,43 @@ function fbSaveAll(immediate){
 /* ── LOGIN UI ── */
 function showLogin(){FB._shown=true;const el=$('fbLogin');if(el)el.style.display='flex';hideSplash();}
 function hideLogin(){const el=$('fbLogin');if(el)el.style.display='none';}
+let fbAuthMode='login';
+function setAuthMode(m){
+  fbAuthMode=m;const signup=(m==='signup');
+  document.querySelectorAll('#fbSeg button').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));
+  $('fbName').style.display=signup?'':'none';
+  $('fbGoBtn').textContent=signup?'Tạo tài khoản':'Đăng nhập';
+  $('fbSub').textContent=signup?'Tạo tài khoản mới — dữ liệu riêng tư, đồng bộ mọi thiết bị':'Đăng nhập để đồng bộ real-time giữa các thiết bị';
+  $('fbPass').placeholder=signup?'Mật khẩu (≥ 6 ký tự)':'Mật khẩu';
+  $('fbPass').setAttribute('autocomplete',signup?'new-password':'current-password');
+  $('fbForgot').style.display=signup?'none':'';
+  $('fbLoginErr').textContent='';
+}
+function fbSubmitAuth(e){if(e&&e.preventDefault)e.preventDefault();if(fbAuthMode==='signup')fbDoSignup();else fbDoLogin();}
 function fbDoLogin(e){if(e&&e.preventDefault)e.preventDefault();if(!FB.auth)return;const em=($('fbEmail').value||'').trim(),pw=$('fbPass').value||'';if(!em||!pw){$('fbLoginErr').textContent='Nhập email & mật khẩu';return;}$('fbLoginErr').textContent='Đang đăng nhập…';FB.auth.signInWithEmailAndPassword(em,pw).then(function(){$('fbLoginErr').textContent='';$('fbPass').value='';}).catch(function(err){$('fbLoginErr').textContent=fbErrMsg(err);});}
+function fbDoSignup(){
+  if(!FB.auth)return;
+  const em=($('fbEmail').value||'').trim(),pw=$('fbPass').value||'',nm=($('fbName').value||'').trim();
+  if(!em||!pw){$('fbLoginErr').textContent='Nhập email & mật khẩu';return;}
+  if(pw.length<6){$('fbLoginErr').textContent='Mật khẩu cần ít nhất 6 ký tự';return;}
+  $('fbLoginErr').textContent='Đang tạo tài khoản…';
+  FB.auth.createUserWithEmailAndPassword(em,pw).then(function(cred){
+    $('fbLoginErr').textContent='';$('fbPass').value='';
+    try{if(nm&&cred.user)cred.user.updateProfile({displayName:nm});}catch(_){}
+    try{if(cred.user&&cred.user.sendEmailVerification)cred.user.sendEmailVerification();}catch(_){}
+    showToast('Tạo tài khoản thành công! Đã gửi email xác minh — kiểm tra hộp thư nhé.');
+  }).catch(function(err){$('fbLoginErr').textContent=fbErrMsg(err);});
+}
+function fbForgotPassword(){
+  if(!FB.auth)return;
+  const em=($('fbEmail').value||'').trim();
+  if(!em){$('fbLoginErr').textContent='Nhập email rồi bấm “Quên mật khẩu?” để nhận link đặt lại';return;}
+  $('fbLoginErr').textContent='Đang gửi…';
+  FB.auth.sendPasswordResetEmail(em).then(function(){$('fbLoginErr').textContent='';showToast('Đã gửi email đặt lại mật khẩu tới '+em);}).catch(function(err){$('fbLoginErr').textContent=fbErrMsg(err);});
+}
 function fbSkip(){hideLogin();showToast('Dùng offline — dữ liệu chỉ lưu trên máy này',false);}
 function fbLogout(){if(FB.auth)FB.auth.signOut();fbDetach();showToast('Đã đăng xuất');showLogin();fbUpdateSettingsUI();}
-function fbErrMsg(err){const c=(err&&err.code)||'';if(/wrong-password|invalid-credential|invalid-login/.test(c))return'Sai email hoặc mật khẩu';if(/user-not-found/.test(c))return'Tài khoản không tồn tại';if(/too-many-requests/.test(c))return'Thử lại sau ít phút';if(/network/.test(c))return'Lỗi mạng — kiểm tra kết nối';if(/invalid-email/.test(c))return'Email không hợp lệ';return(err&&err.message)||'Đăng nhập lỗi';}
+function fbErrMsg(err){const c=(err&&err.code)||'';if(/email-already-in-use/.test(c))return'Email này đã được đăng ký — hãy đăng nhập';if(/weak-password/.test(c))return'Mật khẩu quá yếu (cần ≥ 6 ký tự)';if(/operation-not-allowed/.test(c))return'Chưa bật đăng ký Email/Password trong Firebase Console';if(/wrong-password|invalid-credential|invalid-login/.test(c))return'Sai email hoặc mật khẩu';if(/user-not-found/.test(c))return'Tài khoản không tồn tại';if(/too-many-requests/.test(c))return'Thử lại sau ít phút';if(/network/.test(c))return'Lỗi mạng — kiểm tra kết nối';if(/invalid-email/.test(c))return'Email không hợp lệ';return(err&&err.message)||'Có lỗi xảy ra';}
 function fbUpdateSettingsUI(){const el=$('fbStatus');if(!el)return;if(!fbActive){el.innerHTML='<div style="font-size:11px;color:var(--text3);">Firebase chưa sẵn sàng (kiểm tra mạng / cấu hình).</div>';return;}if(FB.uid){const em=(FB.auth&&FB.auth.currentUser&&FB.auth.currentUser.email)||'';el.innerHTML='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px rgba(29,158,117,.5);flex-shrink:0;"></span><span style="font-size:11px;color:var(--text2);flex:1;min-width:120px;">Đã đăng nhập: <b style="color:var(--text)">'+em+'</b><br>Đồng bộ real-time đang bật ✓</span><button class="btn btn-red" onclick="fbLogout()">Đăng xuất</button></div>';}else{el.innerHTML='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:11px;color:var(--text2);flex:1;">Chưa đăng nhập.</span><button class="btn btn-accent" onclick="showLogin()">Đăng nhập</button></div>';}}
 
 /* ════════════════════════════════════════════
