@@ -301,12 +301,22 @@
   <!-- ADD INSTALLMENT FORM -->
   <div class="card" style="margin-bottom:14px;">
     <div class="card-title" style="color:var(--accent2);">+ Thêm khoản trả góp mới</div>
+    <div class="seg" id="tgModeSeg" style="margin-bottom:12px;">
+      <button type="button" class="on" data-mode="equal" onclick="setTgMode('equal')">Chia đều số tháng</button>
+      <button type="button" data-mode="custom" onclick="setTgMode('custom')">Tự nhập từng tháng</button>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
       <div class="field">
         <label>Tên / Mô tả khoản vay</label>
         <input type="text" id="tgName" placeholder="iPhone 15, Xe máy, Tiền nhà..."/>
       </div>
       <div class="field">
+        <label>Ngày bắt đầu trả</label>
+        <input type="date" id="tgStartDate"/>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div class="field" id="tgTotalField">
         <label>Tổng số tiền vay (₫)</label>
         <div class="smart-input-wrap">
           <input type="number" id="tgTotal" placeholder="0" step="any" min="0"
@@ -314,14 +324,12 @@
           <span class="smart-preview" id="tgTotalP"></span>
         </div>
       </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
       <div class="field">
         <label>Số tháng trả góp</label>
         <input type="number" id="tgMonths" placeholder="12" min="1" max="360"
-          oninput="calcTgMonthly()"/>
+          oninput="calcTgMonthly();renderTgCustomInputs()"/>
       </div>
-      <div class="field">
+      <div class="field" id="tgPerField">
         <label>Tiền trả mỗi tháng (₫)</label>
         <div class="smart-input-wrap">
           <input type="number" id="tgPerMonth" placeholder="Tự tính..." step="any" min="0"
@@ -329,11 +337,8 @@
           <span class="smart-preview" id="tgPerP"></span>
         </div>
       </div>
-      <div class="field">
-        <label>Ngày bắt đầu trả</label>
-        <input type="date" id="tgStartDate"/>
-      </div>
     </div>
+    <div id="tgCustomWrap" style="display:none;margin-bottom:10px;"></div>
     <div id="tgCalcPreview" style="font-size:11px;color:var(--text3);margin-bottom:10px;min-height:16px;"></div>
     <button class="btn-full btn-full-blue" onclick="addInstallment()">+ Thêm khoản trả góp</button>
   </div>
@@ -392,6 +397,43 @@
     <div class="edit-actions">
       <button type="button" class="edit-del" onclick="deleteEditTx()" title="Xoá giao dịch">🗑</button>
       <button type="button" class="btn-full" onclick="saveEditTx()">Lưu thay đổi</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT INSTALLMENT modal -->
+<div class="calc-overlay" id="tgEditOverlay" onclick="if(event.target===this)closeTgEdit()">
+  <div class="calc-box edit-box wide">
+    <h3>✏️ Sửa khoản trả góp</h3>
+    <div class="scrolly">
+      <div class="edit-field"><label>Tên / Mô tả</label><input type="text" id="etgName"/></div>
+      <div class="edit-field"><label>Ngày bắt đầu</label><input type="date" id="etgStart"/></div>
+      <div class="edit-field"><label>Số tháng</label><input type="number" id="etgMonths" min="1" max="360" inputmode="numeric" oninput="renderEtgCustom()"/></div>
+      <div class="edit-field"><label>Cách trả</label>
+        <div class="seg" id="etgModeSeg">
+          <button type="button" data-mode="equal" onclick="setEtgMode('equal')">Chia đều</button>
+          <button type="button" data-mode="custom" onclick="setEtgMode('custom')">Tự nhập từng tháng</button>
+        </div>
+      </div>
+      <div class="edit-field" id="etgTotalField"><label>Tổng số tiền (nghìn — 5000 = 5.000.000₫)</label><input type="number" id="etgTotal" inputmode="numeric"/></div>
+      <div id="etgCustomWrap" style="display:none;"></div>
+    </div>
+    <div class="edit-actions">
+      <button type="button" class="edit-del" onclick="deleteEditInstallment()" title="Xoá khoản trả góp">🗑</button>
+      <button type="button" class="btn-full" onclick="saveTgEdit()">Lưu thay đổi</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT FIXED FEE modal -->
+<div class="calc-overlay" id="mfEditOverlay" onclick="if(event.target===this)closeMfEdit()">
+  <div class="calc-box edit-box">
+    <h3>✏️ Sửa phí cố định</h3>
+    <div class="edit-field"><label>Tên phí</label><input type="text" id="emfName"/></div>
+    <div class="edit-field"><label>Số tiền / tháng (nghìn — 200 = 200.000₫)</label><input type="number" id="emfAmount" inputmode="numeric"/></div>
+    <div class="edit-actions">
+      <button type="button" class="edit-del" onclick="deleteEditMonthlyFee()" title="Xoá phí">🗑</button>
+      <button type="button" class="btn-full" onclick="saveMfEdit()">Lưu thay đổi</button>
     </div>
   </div>
 </div>

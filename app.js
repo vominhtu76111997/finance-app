@@ -1191,12 +1191,43 @@ async function cloudSaveInstallments(){
   return false;
 }
 
+/* ── Chế độ thêm trả góp: 'equal' (chia đều) | 'custom' (tự nhập từng tháng) ── */
+let tgMode='equal';
+function setTgMode(m){
+  tgMode=m;const custom=(m==='custom');
+  document.querySelectorAll('#tgModeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));
+  if($('tgTotalField'))$('tgTotalField').style.display=custom?'none':'';
+  if($('tgPerField'))$('tgPerField').style.display=custom?'none':'';
+  if($('tgCustomWrap'))$('tgCustomWrap').style.display=custom?'':'none';
+  if(custom)renderTgCustomInputs();
+  calcTgMonthly();
+}
+// Vẽ N ô nhập tiền (1 ô / tháng), giữ lại giá trị đã gõ khi đổi số tháng
+function renderTgCustomInputs(){
+  if(tgMode!=='custom')return;const wrap=$('tgCustomWrap');if(!wrap)return;
+  const months=parseInt($('tgMonths').value)||0;
+  if(months<1||months>360){wrap.innerHTML='<div style="font-size:11px;color:var(--text3);">Nhập "Số tháng" trước để nhập tiền từng tháng.</div>';return;}
+  const old={};wrap.querySelectorAll('.tg-cm-input').forEach(i=>old[i.dataset.idx]=i.value);
+  let html='<div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Tiền mỗi tháng (đơn vị nghìn — 200 = 200.000₫):</div><div class="tg-cm-grid">';
+  for(let i=0;i<months;i++)html+=`<div class="tg-cm-cell"><span class="tg-cm-lbl">Tháng ${i+1}</span><input type="number" class="tg-cm-input" data-idx="${i}" inputmode="numeric" placeholder="0" value="${old[i]||''}" oninput="calcTgMonthly()"></div>`;
+  html+='</div>';wrap.innerHTML=html;
+}
+function readCustomInputs(scopeId){
+  const arr=[];let sum=0;
+  document.querySelectorAll('#'+scopeId+' .tg-cm-input').forEach(i=>{const v=smartAmount(parseFloat(i.value)||0);arr.push(v);sum+=v;});
+  return {arr,sum};
+}
 function calcTgMonthly(){
-  const rawTotal = parseFloat($('tgTotal')&&$('tgTotal').value)||0;
-  const total = smartAmount(rawTotal);
-  const months = parseInt($('tgMonths')&&$('tgMonths').value)||0;
   const prev = $('tgCalcPreview');
   if(!prev) return;
+  const months = parseInt($('tgMonths')&&$('tgMonths').value)||0;
+  if(tgMode==='custom'){
+    const {arr,sum}=readCustomInputs('tgCustomWrap');
+    const filled=arr.filter(v=>v>0).length;
+    prev.textContent = months>0 ? `→ Tổng ${months} tháng = ${fmtVN(sum)} · đã nhập ${filled}/${months} tháng` : '';
+    return;
+  }
+  const total = smartAmount(parseFloat($('tgTotal')&&$('tgTotal').value)||0);
   if(total>0 && months>0){
     const per = total/months;
     const perField = $('tgPerMonth');
@@ -1212,27 +1243,92 @@ function calcTgMonthly(){
 
 function addInstallment(){
   const name = ($('tgName').value||'').trim();
-  const total = smartAmount(parseFloat($('tgTotal').value)||0);
   const months = parseInt($('tgMonths').value)||0;
-  const perMonth = smartAmount(parseFloat($('tgPerMonth').value)||0);
   const startDate = $('tgStartDate').value || new Date().toISOString().slice(0,10);
   if(!name){showToast('Nhập tên khoản vay!',false);return;}
-  if(!total||!months){showToast('Nhập đủ tổng tiền & số tháng!',false);return;}
-  const pm = perMonth || Math.round(total/months);
-  const inst = {
-    id: Date.now(),
-    name, total, months,
-    perMonth: pm,
-    startDate,
-    paidMonths: new Array(months).fill(false)
-  };
+  if(!months){showToast('Nhập số tháng!',false);return;}
+  let inst;
+  if(tgMode==='custom'){
+    const {arr,sum}=readCustomInputs('tgCustomWrap');
+    if(arr.length!==months||sum<=0){showToast('Nhập tiền cho các tháng!',false);return;}
+    inst={id:Date.now(),name,total:sum,months,perMonth:Math.round(sum/months),customAmounts:arr,startDate,paidMonths:new Array(months).fill(false)};
+  } else {
+    const total = smartAmount(parseFloat($('tgTotal').value)||0);
+    const perMonth = smartAmount(parseFloat($('tgPerMonth').value)||0);
+    if(!total){showToast('Nhập tổng tiền!',false);return;}
+    inst={id:Date.now(),name,total,months,perMonth:perMonth||Math.round(total/months),startDate,paidMonths:new Array(months).fill(false)};
+  }
   installments.push(inst);
   saveInstallments();
   $('tgName').value=''; $('tgTotal').value=''; $('tgMonths').value='';
   $('tgPerMonth').value=''; $('tgCalcPreview').textContent='';
+  if($('tgCustomWrap'))$('tgCustomWrap').innerHTML='';
+  setTgMode('equal');
   renderTragop();
   showToast('Đã thêm khoản trả góp!');
 }
+/* Helpers tính tiền cho cả 2 chế độ (chia đều / tự nhập) */
+function instAmtForMonth(inst,i){return (inst.customAmounts&&inst.customAmounts.length)?(inst.customAmounts[i]||0):(inst.perMonth||0);}
+function instPaidAmount(inst){const paid=inst.paidMonths||[];let s=0;for(let i=0;i<inst.months;i++)if(paid[i])s+=instAmtForMonth(inst,i);return s;}
+function instMonthlyDue(inst){const paid=inst.paidMonths||[];const i=paid.findIndex(p=>!p);return i<0?0:instAmtForMonth(inst,i);}
+
+/* ── SỬA KHOẢN TRẢ GÓP ── */
+let _tgEditId=null, etgMode='equal';
+function openEditInstallment(id){
+  const inst=installments.find(x=>String(x.id)===String(id));if(!inst)return;
+  _tgEditId=inst.id;
+  $('etgName').value=inst.name||'';
+  $('etgStart').value=inst.startDate||new Date().toISOString().slice(0,10);
+  $('etgMonths').value=inst.months||'';
+  const custom=!!(inst.customAmounts&&inst.customAmounts.length);
+  setEtgMode(custom?'custom':'equal');
+  $('etgTotal').value=Math.round((inst.total||0)/1000);
+  if(custom)renderEtgCustom(inst.customAmounts);
+  $('tgEditOverlay').classList.add('show');
+}
+function setEtgMode(m){
+  etgMode=m;const custom=(m==='custom');
+  document.querySelectorAll('#etgModeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));
+  $('etgTotalField').style.display=custom?'none':'';
+  $('etgCustomWrap').style.display=custom?'':'none';
+  if(custom)renderEtgCustom();
+}
+function renderEtgCustom(preset){
+  if(etgMode!=='custom')return;const wrap=$('etgCustomWrap');if(!wrap)return;
+  const months=parseInt($('etgMonths').value)||0;
+  if(months<1||months>360){wrap.innerHTML='<div style="font-size:11px;color:var(--text3);">Nhập số tháng.</div>';return;}
+  const old={};wrap.querySelectorAll('.tg-cm-input').forEach(i=>old[i.dataset.idx]=i.value);
+  let html='<div style="font-size:11px;color:var(--text2);margin:2px 0 6px;">Tiền mỗi tháng (nghìn — 200 = 200.000₫):</div><div class="tg-cm-grid">';
+  for(let i=0;i<months;i++){
+    const val = (preset&&preset[i]!=null) ? Math.round(preset[i]/1000) : (old[i]!=null?old[i]:'');
+    html+=`<div class="tg-cm-cell"><span class="tg-cm-lbl">Tháng ${i+1}</span><input type="number" class="tg-cm-input" data-idx="${i}" inputmode="numeric" placeholder="0" value="${val}"></div>`;
+  }
+  html+='</div>';wrap.innerHTML=html;
+}
+function closeTgEdit(){$('tgEditOverlay').classList.remove('show');_tgEditId=null;}
+function saveTgEdit(){
+  const inst=installments.find(x=>String(x.id)===String(_tgEditId));if(!inst){closeTgEdit();return;}
+  const name=($('etgName').value||'').trim();
+  const months=parseInt($('etgMonths').value)||0;
+  const startDate=$('etgStart').value||inst.startDate;
+  if(!name){showToast('Nhập tên',false);return;}
+  if(!months||months<1){showToast('Nhập số tháng',false);return;}
+  const oldPaid=inst.paidMonths||[];
+  const paidMonths=new Array(months).fill(false).map((_,i)=>!!oldPaid[i]); // giữ trạng thái đã trả, cắt/đệm theo số tháng mới
+  if(etgMode==='custom'){
+    const {arr,sum}=readCustomInputs('etgCustomWrap');
+    while(arr.length<months)arr.push(0); arr.length=months;
+    if(sum<=0){showToast('Nhập tiền các tháng',false);return;}
+    inst.customAmounts=arr; inst.total=sum; inst.perMonth=Math.round(sum/months);
+  } else {
+    const total=smartAmount(parseFloat($('etgTotal').value)||0);
+    if(!total){showToast('Nhập tổng tiền',false);return;}
+    delete inst.customAmounts; inst.total=total; inst.perMonth=Math.round(total/months);
+  }
+  inst.name=name; inst.startDate=startDate; inst.months=months; inst.paidMonths=paidMonths;
+  saveInstallments(); renderTragop(); closeTgEdit(); playSuccess(); showToast('Đã cập nhật khoản trả góp ✓');
+}
+function deleteEditInstallment(){if(_tgEditId==null)return;const id=_tgEditId;closeTgEdit();deleteInstallment(id);}
 
 function toggleInstallmentMonth(id, idx){
   const inst = installments.find(i=>i.id===id);
@@ -1274,19 +1370,34 @@ function addMonthlyFee(){
 }
 
 function deleteMonthlyFee(id){
-  monthlyFees = monthlyFees.filter(f=>f.id!==id);
+  const f=monthlyFees.find(x=>String(x.id)===String(id));if(!f)return;
+  if(!confirm('Xoá phí "'+f.name+'"?'))return;
+  monthlyFees = monthlyFees.filter(x=>String(x.id)!==String(id));
   saveMonthlyFees();
   renderMonthlyFees();
   renderTgSummary();
   playClick();
 }
+/* ── SỬA PHÍ CỐ ĐỊNH ── */
+let _mfEditId=null;
+function openEditMonthlyFee(id){
+  const f=monthlyFees.find(x=>String(x.id)===String(id));if(!f)return;
+  _mfEditId=f.id;$('emfName').value=f.name||'';$('emfAmount').value=Math.round((f.amount||0)/1000);
+  $('mfEditOverlay').classList.add('show');
+}
+function closeMfEdit(){$('mfEditOverlay').classList.remove('show');_mfEditId=null;}
+function saveMfEdit(){
+  const f=monthlyFees.find(x=>String(x.id)===String(_mfEditId));if(!f){closeMfEdit();return;}
+  const name=($('emfName').value||'').trim();const amount=smartAmount(parseFloat($('emfAmount').value)||0);
+  if(!name){showToast('Nhập tên phí',false);return;}
+  if(!amount){showToast('Nhập số tiền',false);return;}
+  f.name=name;f.amount=amount;saveMonthlyFees();renderMonthlyFees();renderTgSummary();closeMfEdit();playSuccess();showToast('Đã cập nhật phí ✓');
+}
+function deleteEditMonthlyFee(){if(_mfEditId==null)return;const id=_mfEditId;closeMfEdit();deleteMonthlyFee(id);}
 
 // Tổng tiền trả góp mỗi tháng — chỉ tính các khoản CHƯA trả xong
 function getMonthlyInstallmentTotal(){
-  return installments.reduce((sum,inst)=>{
-    const paidCount = (inst.paidMonths||[]).filter(Boolean).length;
-    return sum + (paidCount < inst.months ? (inst.perMonth||0) : 0);
-  },0);
+  return installments.reduce((sum,inst)=>sum+instMonthlyDue(inst),0);
 }
 function getMonthlyFeesTotal(){
   return monthlyFees.reduce((sum,f)=>sum+(f.amount||0),0);
@@ -1303,6 +1414,7 @@ function renderMonthlyFees(){
     <div class="mf-row">
       <span class="mf-name">${f.name}</span>
       <span class="mf-amt">${fmt(f.amount)}<span style="color:var(--text3);font-weight:400;">/tháng</span></span>
+      <button class="tg-edit" onclick="openEditMonthlyFee(${f.id})" title="Sửa phí">✏️</button>
       <button class="tg-delete" onclick="deleteMonthlyFee(${f.id})" title="Xóa phí">🗑</button>
     </div>`).join('');
 }
@@ -1335,9 +1447,10 @@ function renderTragop(){
   }
   const now = new Date();
   list.innerHTML = installments.map(inst=>{
+    const isCustom = !!(inst.customAmounts&&inst.customAmounts.length);
     const paidCount = inst.paidMonths.filter(Boolean).length;
     const remaining = inst.months - paidCount;
-    const paidAmount = paidCount * inst.perMonth;
+    const paidAmount = instPaidAmount(inst);
     const remainAmount = inst.total - paidAmount;
     const pct = Math.round((paidCount/inst.months)*100);
     
@@ -1366,11 +1479,13 @@ function renderTragop(){
       const mon = chipDate.toLocaleDateString('vi-VN',{month:'short'});
       const yr = chipDate.getFullYear().toString().slice(2);
       const isCurrent = chipDate.getMonth()===now.getMonth()&&chipDate.getFullYear()===now.getFullYear();
-      return `<div class="tg-month-chip${paid?' paid':''}${isCurrent?' current-m':''}" 
-        onclick="toggleInstallmentMonth(${inst.id},${idx})" 
+      const amtK = Math.round(instAmtForMonth(inst,idx)/1000);
+      return `<div class="tg-month-chip${paid?' paid':''}${isCurrent?' current-m':''}"
+        onclick="toggleInstallmentMonth(${inst.id},${idx})"
         title="${paid?'Đã trả - nhấn để bỏ đánh dấu':'Chưa trả - nhấn để đánh dấu đã trả'}">
         <span class="chip-num" style="font-size:11px;font-weight:700;">${idx+1}</span>
         <span class="chip-label">${mon}<br>${yr}</span>
+        ${isCustom?`<span class="chip-amt">${amtK}k</span>`:''}
       </div>`;
     }).join('');
     
@@ -1378,9 +1493,12 @@ function renderTragop(){
       <div class="tg-header">
         <div>
           <div class="tg-name">${inst.name}</div>
-          <div class="tg-meta">Bắt đầu: ${new Date(inst.startDate).toLocaleDateString('vi-VN')} · ${inst.months} tháng · ${fmtVN(inst.perMonth)}/tháng</div>
+          <div class="tg-meta">Bắt đầu: ${new Date(inst.startDate).toLocaleDateString('vi-VN')} · ${inst.months} tháng · ${isCustom?'tự nhập từng tháng':fmtVN(inst.perMonth)+'/tháng'}</div>
         </div>
-        <button class="tg-delete" onclick="deleteInstallment(${inst.id})">🗑</button>
+        <div style="display:flex;gap:2px;flex-shrink:0;">
+          <button class="tg-edit" onclick="openEditInstallment(${inst.id})" title="Sửa">✏️</button>
+          <button class="tg-delete" onclick="deleteInstallment(${inst.id})" title="Xoá">🗑</button>
+        </div>
       </div>
       
       <div class="tg-progress-bar-wrap">
@@ -1412,7 +1530,7 @@ function renderTragop(){
       <div class="tg-remaining-info">
         ⏱ Thời gian còn lại: ${timeLeft}<br>
         💰 Còn phải trả: <span class="highlight">${fmtVN(remainAmount)}</span> trong <strong>${remaining} tháng</strong>
-        ${remaining>0?` · mỗi tháng <strong>${fmtVN(inst.perMonth)}</strong>`:''}
+        ${remaining>0?(isCustom?` · tháng tới <strong>${fmtVN(instMonthlyDue(inst))}</strong>`:` · mỗi tháng <strong>${fmtVN(inst.perMonth)}</strong>`):''}
       </div>
     </div>`;
   }).join('');

@@ -519,6 +519,17 @@ body.privacy .val,body.privacy .tx-amt,body.privacy .metric-val,body.privacy .we
 .edit-actions{display:flex;gap:8px;margin-top:16px;}
 .edit-actions .btn-full{flex:1;}
 .edit-del{flex:0 0 auto;padding:13px 16px;border-radius:10px;border:.5px solid var(--red);background:var(--red-bg);color:var(--red);font-family:inherit;font-size:14px;cursor:pointer;}
+.edit-box.wide{width:420px;}
+.edit-box .scrolly{max-height:46vh;overflow-y:auto;margin:0 -4px;padding:0 4px;}
+/* ── TRẢ GÓP: nhập tiền từng tháng ── */
+.tg-cm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;}
+.tg-cm-cell{display:flex;flex-direction:column;gap:3px;}
+.tg-cm-lbl{font-size:10px;color:var(--text2);font-weight:600;}
+.tg-cm-input{width:100%;background:var(--bg3);border:.5px solid var(--border2);border-radius:8px;color:var(--text);font-size:15px;padding:8px;outline:none;font-family:inherit;-webkit-appearance:none;transition:border-color .2s;}
+.tg-cm-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(93,202,165,.1);}
+.tg-month-chip .chip-amt{font-size:8.5px;font-weight:700;color:var(--accent2);margin-top:1px;}
+.tg-edit{background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;padding:4px 7px;border-radius:6px;transition:.2s;}
+.tg-edit:hover{color:var(--accent);background:rgba(93,202,165,.1);}
 /* ── HISTORY: search + summary ── */
 .filter-search{position:relative;flex:1;min-width:150px;}
 .filter-search input{width:100%;padding-left:30px;}
