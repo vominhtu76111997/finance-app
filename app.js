@@ -1675,18 +1675,21 @@ document.addEventListener('DOMContentLoaded',()=>{
   const canvas=document.getElementById('scifiBg');
   if(!canvas)return;
   const ctx=canvas.getContext('2d');
-  let w,h,t=0;
-  
+  let w,h,t=0,raf=null,last=0;
+  const MOBILE=window.innerWidth<768;
+  const FRAME=1000/30;                 // giới hạn ~30fps → giảm ~1/2 CPU (nền chậm nên mắt không thấy khác)
+  const N_ORBS=MOBILE?4:6, N_PARTS=MOBILE?18:40, N_STREAKS=MOBILE?3:5; // nhẹ hơn trên điện thoại
+
   function resize(){
     w=canvas.width=window.innerWidth;
     h=canvas.height=window.innerHeight;
   }
   resize();
   window.addEventListener('resize',resize);
-  
+
   // Energy orbs
   const orbs=[];
-  for(let i=0;i<6;i++){
+  for(let i=0;i<N_ORBS;i++){
     orbs.push({
       x:Math.random(),y:Math.random(),
       r:Math.random()*180+120,
@@ -1699,7 +1702,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   
   // Energy particles
   const particles=[];
-  for(let i=0;i<40;i++){
+  for(let i=0;i<N_PARTS;i++){
     particles.push({
       x:Math.random(),y:Math.random(),
       size:Math.random()*1.8+.4,
@@ -1712,7 +1715,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   
   // Light streaks (energy lines)
   const streaks=[];
-  for(let i=0;i<5;i++){
+  for(let i=0;i<N_STREAKS;i++){
     streaks.push({
       y:Math.random(),
       speed:Math.random()*.002+.001,
@@ -1806,10 +1809,18 @@ document.addEventListener('DOMContentLoaded',()=>{
       ctx.fillStyle='hsla('+s.hue+',95%,80%,.6)';
       ctx.fill();
     });
-    
-    requestAnimationFrame(draw);
   }
-  draw();
+  function frame(now){
+    raf=requestAnimationFrame(frame);
+    if((now||0)-last<FRAME)return;     // throttle ~30fps
+    last=now||0;
+    draw();
+  }
+  function start(){ if(!raf)raf=requestAnimationFrame(frame); }
+  function stop(){ if(raf){cancelAnimationFrame(raf);raf=null;} }
+  // Tạm dừng hẳn khi tab/app bị ẩn → không hao CPU & pin lúc không nhìn tới
+  document.addEventListener('visibilitychange',function(){ if(document.hidden)stop(); else{last=0;start();} });
+  start();
 })();
 
 
