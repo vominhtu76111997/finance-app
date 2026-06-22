@@ -379,6 +379,19 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 .tg-remaining-info{margin-top:12px;padding:10px 14px;background:var(--bg2);border-radius:10px;font-size:12px;color:var(--text2);line-height:1.9;}
 .tg-remaining-info strong{color:var(--text);font-weight:600;}
 .tg-remaining-info .highlight{color:#1d9e75;font-weight:700;}
+/* TỔNG PHẢI TRẢ MỖI THÁNG */
+.tg-summary{margin-bottom:14px;text-align:center;background:linear-gradient(135deg,rgba(29,158,117,.10),rgba(240,180,41,.08));border:1px solid var(--border);}
+.tg-summary-title{font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;}
+.tg-summary-total{font-size:28px;font-weight:800;color:var(--text);letter-spacing:-.5px;margin-bottom:12px;}
+.tg-summary-break{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--text2);}
+.tg-summary-break strong{color:var(--text);font-weight:700;}
+.tg-summary-break .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+.tg-summary-break .dot.blue{background:#3b82f6;}
+.tg-summary-break .dot.orange{background:#f0b429;}
+/* PHÍ CỐ ĐỊNH HÀNG THÁNG */
+.mf-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg2);border-radius:9px;margin-bottom:7px;}
+.mf-row .mf-name{flex:1;font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mf-row .mf-amt{font-size:13px;font-weight:700;color:var(--accent2);white-space:nowrap;}
 /* CHI TYPE TOGGLE */
 .chi-type-toggle{display:flex;gap:0;margin-bottom:10px;border-radius:10px;overflow:hidden;border:1.5px solid var(--border2);background:var(--bg3);padding:3px;}
 .chi-type-btn{flex:1;padding:10px 0;text-align:center;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:none;background:transparent;color:var(--text3);transition:all .25s cubic-bezier(.22,1,.36,1);position:relative;border-radius:8px;}
