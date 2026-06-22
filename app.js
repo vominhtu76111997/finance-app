@@ -1195,7 +1195,7 @@ async function cloudSaveInstallments(){
 let tgMode='equal';
 function setTgMode(m){
   tgMode=m;const custom=(m==='custom');
-  document.querySelectorAll('#tgModeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));
+  document.querySelectorAll('#tgModeSeg .chi-type-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
   if($('tgTotalField'))$('tgTotalField').style.display=custom?'none':'';
   if($('tgPerField'))$('tgPerField').style.display=custom?'none':'';
   if($('tgCustomWrap'))$('tgCustomWrap').style.display=custom?'':'none';
@@ -1288,7 +1288,7 @@ function openEditInstallment(id){
 }
 function setEtgMode(m){
   etgMode=m;const custom=(m==='custom');
-  document.querySelectorAll('#etgModeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));
+  document.querySelectorAll('#etgModeSeg .chi-type-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
   $('etgTotalField').style.display=custom?'none':'';
   $('etgCustomWrap').style.display=custom?'':'none';
   if(custom)renderEtgCustom();

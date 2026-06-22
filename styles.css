@@ -398,6 +398,8 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 .chi-type-btn.active{color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15);}
 .chi-type-btn[data-val="normal"].active{background:var(--red);color:#fff;}
 .chi-type-btn[data-val="extra"].active{background:#d97706;color:#fff;}
+.chi-type-btn[data-mode="equal"].active{background:var(--blue);color:#fff;}
+.chi-type-btn[data-mode="custom"].active{background:#9C6ADE;color:#fff;}
 .chi-type-btn:hover:not(.active){color:var(--text2);background:var(--bg2);}
 /* Chi form card border changes based on mode */
 .chi-form-card{transition:border-color .3s,box-shadow .3s;}
@@ -455,7 +457,7 @@ html{scroll-behavior:smooth;}
 #dashMetrics .metric.pulse{animation:hlPulse .9s ease-out 1;}
 
 /* ── PRIVACY MODE ── */
-body.privacy .val,body.privacy .tx-amt,body.privacy .metric-val,body.privacy .week-metric-val,body.privacy .ci-val,body.privacy .smart-preview,body.privacy #historyBody td:nth-child(5),body.privacy .stats-cat-row span:last-child{filter:blur(7px);user-select:none;}
+body.privacy .val,body.privacy .tx-amt,body.privacy .metric-val,body.privacy .week-metric-val,body.privacy .ci-val,body.privacy .smart-preview,body.privacy #historyBody td:nth-child(5),body.privacy .stats-cat-row span:last-child,body.privacy .tg-summary-total,body.privacy .tg-summary-break strong,body.privacy .mf-amt,body.privacy .tg-stat-val,body.privacy .tg-remaining-info .highlight,body.privacy .tg-remaining-info strong,body.privacy .chip-amt{filter:blur(7px);user-select:none;}
 
 /* ── HEATMAP CHI TIÊU ── */
 .hm-wrap{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;}

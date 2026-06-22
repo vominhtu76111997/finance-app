@@ -301,9 +301,9 @@
   <!-- ADD INSTALLMENT FORM -->
   <div class="card" style="margin-bottom:14px;">
     <div class="card-title" style="color:var(--accent2);">+ Thêm khoản trả góp mới</div>
-    <div class="seg" id="tgModeSeg" style="margin-bottom:12px;">
-      <button type="button" class="on" data-mode="equal" onclick="setTgMode('equal')">Chia đều số tháng</button>
-      <button type="button" data-mode="custom" onclick="setTgMode('custom')">Tự nhập từng tháng</button>
+    <div class="chi-type-toggle" id="tgModeSeg" style="margin-bottom:12px;">
+      <button type="button" class="chi-type-btn active" data-mode="equal" onclick="setTgMode('equal')">⚖️ Chia đều</button>
+      <button type="button" class="chi-type-btn" data-mode="custom" onclick="setTgMode('custom')">✏️ Tự nhập từng tháng</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
       <div class="field">
@@ -410,9 +410,9 @@
       <div class="edit-field"><label>Ngày bắt đầu</label><input type="date" id="etgStart"/></div>
       <div class="edit-field"><label>Số tháng</label><input type="number" id="etgMonths" min="1" max="360" inputmode="numeric" oninput="renderEtgCustom()"/></div>
       <div class="edit-field"><label>Cách trả</label>
-        <div class="seg" id="etgModeSeg">
-          <button type="button" data-mode="equal" onclick="setEtgMode('equal')">Chia đều</button>
-          <button type="button" data-mode="custom" onclick="setEtgMode('custom')">Tự nhập từng tháng</button>
+        <div class="chi-type-toggle" id="etgModeSeg">
+          <button type="button" class="chi-type-btn" data-mode="equal" onclick="setEtgMode('equal')">⚖️ Chia đều</button>
+          <button type="button" class="chi-type-btn" data-mode="custom" onclick="setEtgMode('custom')">✏️ Tự nhập từng tháng</button>
         </div>
       </div>
       <div class="edit-field" id="etgTotalField"><label>Tổng số tiền (nghìn — 5000 = 5.000.000₫)</label><input type="number" id="etgTotal" inputmode="numeric"/></div>
