@@ -354,8 +354,9 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 /* ── TRẢ GÓP STYLES ── */
 .tg-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;position:relative;}
 .tg-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
-.tg-name{font-size:15px;font-weight:600;color:var(--text);}
-.tg-meta{font-size:11px;color:var(--text3);margin-top:3px;}
+.tg-name{font-size:19px;font-weight:800;color:var(--text);line-height:1.25;letter-spacing:-.2px;display:flex;align-items:center;gap:9px;}
+.tg-name::before{content:"";width:5px;height:20px;border-radius:3px;background:linear-gradient(180deg,var(--accent),var(--green));flex-shrink:0;box-shadow:0 0 8px rgba(93,202,165,.5);}
+.tg-meta{font-size:11px;color:var(--text2);margin-top:5px;}
 .tg-delete{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:4px 8px;border-radius:6px;transition:.2s;}
 .tg-delete:hover{color:var(--accent-red);background:rgba(216,90,48,.1);}
 .tg-progress-bar-wrap{background:var(--bg2);border-radius:8px;height:8px;overflow:hidden;margin-bottom:8px;}
