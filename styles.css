@@ -383,12 +383,25 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'SF Pro Display',sans-serif;b
 /* TỔNG PHẢI TRẢ MỖI THÁNG */
 .tg-summary{margin-bottom:14px;text-align:center;background:linear-gradient(135deg,rgba(29,158,117,.10),rgba(240,180,41,.08));border:1px solid var(--border);}
 .tg-summary-title{font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;}
-.tg-summary-total{font-size:28px;font-weight:800;color:var(--text);letter-spacing:-.5px;margin-bottom:12px;}
+.tg-summary-total{font-size:30px;font-weight:800;color:var(--red);letter-spacing:-.5px;margin-bottom:12px;text-shadow:0 0 14px rgba(216,90,48,.22);}
 .tg-summary-break{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--text2);}
 .tg-summary-break strong{color:var(--text);font-weight:700;}
 .tg-summary-break .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle;}
 .tg-summary-break .dot.blue{background:#3b82f6;}
 .tg-summary-break .dot.orange{background:#f0b429;}
+/* LỊCH PHẢI TRẢ CÁC THÁNG TỚI */
+.tg-forecast{margin-top:14px;border-top:1px solid var(--border);padding-top:12px;}
+.tg-forecast-title{font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:9px;text-align:left;}
+.tg-forecast-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;}
+.tg-forecast-row::-webkit-scrollbar{height:5px;}
+.tg-forecast-row::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+.tg-fc-item{flex:0 0 auto;min-width:64px;background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:8px 7px;display:flex;flex-direction:column;align-items:center;gap:5px;scroll-snap-align:start;}
+.tg-fc-item.now{border-color:var(--red);box-shadow:0 0 0 2px rgba(216,90,48,.18);background:rgba(216,90,48,.06);}
+.tg-fc-month{font-size:10px;color:var(--text3);font-weight:600;text-align:center;line-height:1.25;}
+.tg-fc-yr{font-size:8px;color:var(--text3);}
+.tg-fc-amt{font-size:13px;font-weight:800;color:var(--red);white-space:nowrap;}
+.tg-fc-note{font-size:11px;color:var(--text2);margin-top:9px;text-align:left;line-height:1.5;}
+.tg-fc-note strong{color:var(--text);}
 /* PHÍ CỐ ĐỊNH HÀNG THÁNG */
 .mf-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg2);border-radius:9px;margin-bottom:7px;}
 .mf-row .mf-name{flex:1;font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -458,7 +471,7 @@ html{scroll-behavior:smooth;}
 #dashMetrics .metric.pulse{animation:hlPulse .9s ease-out 1;}
 
 /* ── PRIVACY MODE ── */
-body.privacy .val,body.privacy .tx-amt,body.privacy .metric-val,body.privacy .week-metric-val,body.privacy .ci-val,body.privacy .smart-preview,body.privacy #historyBody td:nth-child(5),body.privacy .stats-cat-row span:last-child,body.privacy .tg-summary-total,body.privacy .tg-summary-break strong,body.privacy .mf-amt,body.privacy .tg-stat-val,body.privacy .tg-remaining-info .highlight,body.privacy .tg-remaining-info strong,body.privacy .chip-amt{filter:blur(7px);user-select:none;}
+body.privacy .val,body.privacy .tx-amt,body.privacy .metric-val,body.privacy .week-metric-val,body.privacy .ci-val,body.privacy .smart-preview,body.privacy #historyBody td:nth-child(5),body.privacy .stats-cat-row span:last-child,body.privacy .tg-summary-total,body.privacy .tg-summary-break strong,body.privacy .mf-amt,body.privacy .tg-stat-val,body.privacy .tg-remaining-info .highlight,body.privacy .tg-remaining-info strong,body.privacy .chip-amt,body.privacy .tg-fc-amt{filter:blur(7px);user-select:none;}
 
 /* ── HEATMAP CHI TIÊU ── */
 .hm-wrap{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;}

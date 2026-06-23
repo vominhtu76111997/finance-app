@@ -1425,6 +1425,32 @@ function renderMonthlyFees(){
     </div>`).join('');
 }
 
+// Lịch phải trả các tháng tới: gộp số tiền từng khoản trả góp theo đúng tháng dương lịch
+// (kể cả "tự nhập từng tháng") + phí cố định hằng tháng. Trả về từ tháng hiện tại → tháng cuối.
+function getUpcomingSchedule(){
+  const fees=getMonthlyFeesTotal();
+  const map={}; let maxYM=-1;
+  const now=new Date(); const curYM=now.getFullYear()*12+now.getMonth();
+  installments.forEach(inst=>{
+    const s=new Date(inst.startDate);
+    const baseYM=s.getFullYear()*12+s.getMonth();
+    for(let i=0;i<inst.months;i++){
+      const ym=baseYM+i;
+      if(ym<curYM) continue;                 // chỉ lấy tháng hiện tại trở đi
+      map[ym]=(map[ym]||0)+instAmtForMonth(inst,i);
+      if(ym>maxYM) maxYM=ym;
+    }
+  });
+  const rows=[];
+  if(maxYM>=curYM){
+    for(let ym=curYM; ym<=maxYM; ym++){
+      const inst=map[ym]||0, total=inst+fees;
+      if(total>0) rows.push({ym,inst,fees,total});
+    }
+  }
+  return {rows,fees,maxYM,curYM};
+}
+
 function renderTgSummary(){
   const el = $('tgSummary');
   if(!el) return;
@@ -1432,6 +1458,27 @@ function renderTgSummary(){
   const fees = getMonthlyFeesTotal();
   const total = tg + fees;
   if(total<=0){ el.innerHTML=''; return; }
+  const cpt=v=>v>=1e6?fmtTr(v):Math.round(v/1000)+'k';   // gọn cho ô lịch
+  const sched=getUpcomingSchedule();
+  let fcHtml='';
+  if(sched.rows.length){
+    const items=sched.rows.map(r=>{
+      const y=Math.floor(r.ym/12), m=r.ym%12, isNow=(r.ym===sched.curYM);
+      const tip=`Tháng ${m+1}/${y}: ${fmtVN(r.total)}`+(r.inst>0?` (trả góp ${fmtVN(r.inst)}${fees>0?' + phí '+fmtVN(fees):''})`:(fees>0?' (chỉ phí cố định)':''));
+      return `<div class="tg-fc-item${isNow?' now':''}" title="${tip}">
+        <span class="tg-fc-month">Th${m+1}<br><span class="tg-fc-yr">'${String(y).slice(-2)}</span></span>
+        <span class="tg-fc-amt">${cpt(r.total)}</span>
+      </div>`;
+    }).join('');
+    let tail='';
+    if(fees>0){ const ny=Math.floor((sched.maxYM+1)/12), nm=(sched.maxYM+1)%12;
+      tail=`<div class="tg-fc-note">Từ Th${nm+1}/'${String(ny).slice(-2)} trở đi: chỉ còn phí cố định <strong>${fmt(fees)}</strong>/tháng</div>`; }
+    fcHtml=`<div class="tg-forecast">
+      <div class="tg-forecast-title">📆 Lịch phải trả các tháng tới — kéo ngang để xem</div>
+      <div class="tg-forecast-row">${items}</div>
+      ${tail}
+    </div>`;
+  }
   el.innerHTML = `<div class="card tg-summary">
     <div class="tg-summary-title">📅 Tổng phải trả mỗi tháng</div>
     <div class="tg-summary-total">${fmt(total)}</div>
@@ -1439,6 +1486,7 @@ function renderTgSummary(){
       <div><span class="dot blue"></span>Trả góp: <strong>${fmt(tg)}</strong></div>
       <div><span class="dot orange"></span>Phí cố định: <strong>${fmt(fees)}</strong></div>
     </div>
+    ${fcHtml}
   </div>`;
 }
 
