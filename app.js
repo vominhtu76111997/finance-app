@@ -767,12 +767,24 @@ function fbTree(){
   return {transactions:txObj,investments:invObj,accounts:accObj,settings:JSON.stringify(settingsObj)};
 }
 // Hợp nhất theo từng-mục: bắt đầu từ server, GIỮ mục mới thêm cục bộ (chưa kịp đẩy),
-// BỎ mục đã xoá cục bộ (chưa kịp đẩy). Nhờ vậy đổi máy/đổi mục KHÁC nhau không mất dữ liệu.
+// GIỮ mục đã SỬA cục bộ (chưa kịp đẩy) khi server chưa đổi mục đó, BỎ mục đã xoá cục bộ.
+// Nhờ vậy đổi máy / sửa-thêm-xoá KHÁC nhau không mất dữ liệu — kể cả khi snapshot server
+// về đúng lúc bản sửa cục bộ chưa kịp push (vd: thêm 35k rồi sửa ngay thành 40k).
 function fbMergeColl(localArr,serverObj,lastObj){
   const out={};const sv=serverObj||{},last=lastObj||{};
   Object.keys(sv).forEach(function(id){out[id]=sv[id];});
   const localById={};localArr.forEach(function(x){if(x&&x.id!=null)localById[String(x.id)]=x;});
-  localArr.forEach(function(x){if(x&&x.id!=null){var id=String(x.id);if(!(id in out)&&!(id in last))out[id]=x;}}); // thêm cục bộ chưa có trên server
+  localArr.forEach(function(x){
+    if(!x||x.id==null)return;
+    var id=String(x.id);
+    if(!(id in out)&&!(id in last)){out[id]=x;return;}                       // thêm cục bộ chưa có trên server
+    // SỬA cục bộ chưa đẩy: server CHƯA đổi mục này kể từ lần sync trước (out===last)
+    // nhưng local đã khác baseline → đây là sửa pending → giữ bản local (sẽ tự push lại để hội tụ).
+    // Nếu server CŨNG đổi (out!==last) → xung đột thật → ưu tiên server (last-write-wins).
+    if((id in out)&&(id in last)&&stableStr(out[id])===stableStr(last[id])&&stableStr(x)!==stableStr(last[id])){
+      out[id]=x;
+    }
+  });
   Object.keys(last).forEach(function(id){if(!(id in localById)&&(id in out))delete out[id];});               // xoá cục bộ chưa propagate
   return Object.keys(out).map(function(k){return out[k];});
 }
@@ -799,23 +811,32 @@ function fbApply(val){
     txData=fbMergeColl(txData,val.transactions,last.transactions).sort(function(a,b){return (a.id||0)-(b.id||0);});
     investments=fbMergeColl(investments,val.investments,last.investments);
     accounts=fbMergeColl(accounts,val.accounts,last.accounts);
-    let s={};try{s=val.settings?(typeof val.settings==='string'?JSON.parse(val.settings):val.settings):{};}catch(e){s={};}
-    opening=s.opening||0;if($('openingBal'))$('openingBal').value=opening||'';
-    if(s.catsChi)catsChi=s.catsChi;
-    if(s.catsThu)catsThu=s.catsThu;
-    budgets=s.budgets||{};
-    monthMoneyData=s.monthMoney||null;
-    installments=s.installments||[];
-    monthlyFees=s.monthlyFees||[];
-    localStorage.setItem('fin_monthly_fees',JSON.stringify(monthlyFees));
+    // tx/inv/acc luôn ghi lại (đã hợp nhất từng-mục)
     localStorage.setItem('fin_tx',JSON.stringify(txData));
     localStorage.setItem('fin_inv',JSON.stringify(investments));
     localStorage.setItem('fin_accounts',JSON.stringify(accounts));
-    localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));
-    localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));
-    localStorage.setItem('fin_budgets',JSON.stringify(budgets));
-    if(monthMoneyData)localStorage.setItem('fin_month_money',JSON.stringify(monthMoneyData));else localStorage.removeItem('fin_month_money');
-    localStorage.setItem('fin_installments',JSON.stringify(installments));
+    // SETTINGS là 1 blob (không merge từng-field) → cũng theo nguyên tắc baseline:
+    // nếu server CHƯA đổi settings kể từ lần sync trước (server===baseline) mà local đã đổi
+    // (chưa kịp push) thì GIỮ settings local — tránh nuốt mất tiền-dùng/danh mục/ngân sách…
+    // (bản local sẽ tự đẩy lên ở fbDiff cuối hàm để hội tụ).
+    const lastSetStr=(last&&typeof last.settings==='string')?last.settings:'';
+    const keepLocalSettings=lastSetStr!==''&&serverTree.settings===lastSetStr&&fbTree().settings!==lastSetStr;
+    if(!keepLocalSettings){
+      let s={};try{s=val.settings?(typeof val.settings==='string'?JSON.parse(val.settings):val.settings):{};}catch(e){s={};}
+      opening=s.opening||0;if($('openingBal'))$('openingBal').value=opening||'';
+      if(s.catsChi)catsChi=s.catsChi;
+      if(s.catsThu)catsThu=s.catsThu;
+      budgets=s.budgets||{};
+      monthMoneyData=s.monthMoney||null;
+      installments=s.installments||[];
+      monthlyFees=s.monthlyFees||[];
+      localStorage.setItem('fin_monthly_fees',JSON.stringify(monthlyFees));
+      localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));
+      localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));
+      localStorage.setItem('fin_budgets',JSON.stringify(budgets));
+      if(monthMoneyData)localStorage.setItem('fin_month_money',JSON.stringify(monthMoneyData));else localStorage.removeItem('fin_month_money');
+      localStorage.setItem('fin_installments',JSON.stringify(installments));
+    }
     FB._lastSynced=serverTree; // mốc = sự thật trên server (các mục pending cục bộ sẽ được đẩy ở lần save kế)
     FB._pushSig=sig;
   }catch(e){console.warn('fb apply',e);}
