@@ -203,22 +203,26 @@ function clearAllData(){if(!confirm('Xóa TOÀN BỘ?'))return;txData=[];investm
 /* ── DASHBOARD ── */
 function updateAll(){
   const mTx=getViewMonthTx();
-  const thu=mTx.filter(t=>t.type==='thu').reduce((s,t)=>s+t.amount,0);
-  const chi=mTx.filter(t=>t.type==='chi').reduce((s,t)=>s+t.amount,0);
-  const allThu=txData.filter(t=>t.type==='thu').reduce((s,t)=>s+t.amount,0);
-  const allChi=txData.filter(t=>t.type==='chi').reduce((s,t)=>s+t.amount,0);
+  // 1 vòng lặp cho thu/chi tháng + đếm (thay 4 lần filter+reduce)
+  let thu=0,chi=0,thuN=0,chiN=0;
+  for(const t of mTx){if(t.type==='thu'){thu+=t.amount;thuN++;}else if(t.type==='chi'){chi+=t.amount;chiN++;}}
+  // 1 vòng lặp cho toàn bộ thu/chi (thay 2 lần filter+reduce trên cả txData)
+  let allThu=0,allChi=0;
+  for(const t of txData){if(t.type==='thu')allThu+=t.amount;else if(t.type==='chi')allChi+=t.amount;}
   const invPnL=investments.reduce((s,i)=>(i.curPrice-i.buyPrice)*i.qty+s,0);
   const accTotal=totalAccounts();
   const sodu=opening+allThu-allChi+invPnL;
   const net=thu-chi;
+  const assets=sodu+accTotal;
+  const sav=getSavings();              // gọi 1 lần thay vì 4
   $('monthLabel').textContent=monthLabel();
   $('dashMetrics').innerHTML=`
-    <div class="metric" data-m="assets"><div class="label">Tổng tài sản</div><div class="val ${sodu+accTotal>=0?'val-white':'val-red'}">${fmt(sodu+accTotal)}</div><div class="sub-val">Số dư + Tài khoản + Đầu tư</div></div>
-    <div class="metric" data-m="thu"><div class="label">Thu tháng</div><div class="val val-green">${fmt(thu)}</div><div class="sub-val">${mTx.filter(t=>t.type==='thu').length} giao dịch</div></div>
-    <div class="metric" data-m="chi"><div class="label">Chi tháng</div><div class="val val-red">${fmt(chi)}</div><div class="sub-val">${mTx.filter(t=>t.type==='chi').length} giao dịch</div></div>
+    <div class="metric" data-m="assets"><div class="label">Tổng tài sản</div><div class="val ${assets>=0?'val-white':'val-red'}">${fmt(assets)}</div><div class="sub-val">Số dư + Tài khoản + Đầu tư</div></div>
+    <div class="metric" data-m="thu"><div class="label">Thu tháng</div><div class="val val-green">${fmt(thu)}</div><div class="sub-val">${thuN} giao dịch</div></div>
+    <div class="metric" data-m="chi"><div class="label">Chi tháng</div><div class="val val-red">${fmt(chi)}</div><div class="sub-val">${chiN} giao dịch</div></div>
     <div class="metric" data-m="net"><div class="label">Ròng</div><div class="val ${net>=0?'val-green':'val-red'}">${net>=0?'+':''}${fmt(net)}</div><div class="sub-val">${net>=0?'Thặng dư':'Thâm hụt'}</div></div>
-    <div class="metric" data-m="savings"><div class="label">Tiết kiệm</div><div class="val ${getSavings()>=0?'val-green':'val-red'}">${getSavings()>=0?'':'−'}${fmt(Math.abs(getSavings()))}</div><div class="sub-val">${monthMoneyData?'Tổng tài sản − tiền dùng còn lại':'Chưa đặt tiền dùng trong tháng'}</div></div>`;
-  renderMonthList(mTx);renderMonthChart(mTx);renderMonthMoney();try{animMetrics({assets:sodu+accTotal,thu:thu,chi:chi,net:net,savings:getSavings()});}catch(e){console.warn("anim",e);}try{renderInsights(mTx);}catch(e){console.warn("insight",e);}
+    <div class="metric" data-m="savings"><div class="label">Tiết kiệm</div><div class="val ${sav>=0?'val-green':'val-red'}">${sav>=0?'':'−'}${fmt(Math.abs(sav))}</div><div class="sub-val">${monthMoneyData?'Tổng tài sản − tiền dùng còn lại':'Chưa đặt tiền dùng trong tháng'}</div></div>`;
+  renderMonthList(mTx);renderMonthChart(mTx);renderMonthMoney();try{animMetrics({assets:assets,thu:thu,chi:chi,net:net,savings:sav});}catch(e){console.warn("anim",e);}try{renderInsights(mTx);}catch(e){console.warn("insight",e);}
 }
 
 function renderMonthList(txs){
@@ -642,6 +646,8 @@ function _pollNow(){
 }
 function startLivePolling(){
   if(_pollTimer)clearInterval(_pollTimer);
+  // Firebase real-time đã đẩy cập nhật <1s → không cần poll 6s (chỉ dùng cho Google Sheets cũ)
+  if(fbActive)return;
   _pollTimer=setInterval(_pollNow,6000); // 6s khi đang mở & hiển thị → cập nhật gần như tức thì
   if(!_liveBound){
     _liveBound=true;
@@ -1724,7 +1730,24 @@ document.addEventListener('DOMContentLoaded',()=>{
       progress:Math.random()
     });
   }
-  
+
+  // ── Sprite glow vẽ sẵn 1 LẦN (MDN: pre-render to offscreen canvas) ──
+  // Thay vì createRadialGradient + fillRect cho TỪNG orb/hạt MỖI frame
+  // (40 hạt × 30fps ≈ 1200 gradient/giây → tốn CPU & sinh rác GC). Giờ chỉ drawImage.
+  function radialSprite(d,stops){
+    const c=document.createElement('canvas');c.width=c.height=d;
+    const g=c.getContext('2d'),r=d/2;
+    const grad=g.createRadialGradient(r,r,0,r,r,r);
+    stops.forEach(s=>grad.addColorStop(s[0],s[1]));
+    g.fillStyle=grad;g.fillRect(0,0,d,d);return c;
+  }
+  // Hạt: tâm đặc → mép trong suốt; độ mờ tổng chỉnh bằng globalAlpha lúc vẽ
+  const glowSprites={};
+  [210,265].forEach(hue=>{glowSprites[hue]=radialSprite(64,[[0,'hsla('+hue+',90%,60%,1)'],[1,'hsla('+hue+',90%,60%,0)']]);});
+  // Orb nebula: giữ nguyên dải alpha gốc .10/.04/0
+  const orbSprites={};
+  [200,260,180,290,210,170].forEach(hue=>{orbSprites[hue]=radialSprite(256,[[0,'hsla('+hue+',80%,55%,.10)'],[.5,'hsla('+hue+',75%,45%,.04)'],[1,'hsla('+hue+',70%,40%,0)']]);});
+
   function draw(){
     t+=.008;
     ctx.clearRect(0,0,w,h);
@@ -1736,12 +1759,9 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(o.y<-.2)o.y=1.2;if(o.y>1.2)o.y=-.2;
       
       const pulse=Math.sin(o.phase)*.25+.75;
-      const grad=ctx.createRadialGradient(o.x*w,o.y*h,0,o.x*w,o.y*h,o.r*pulse);
-      grad.addColorStop(0,'hsla('+o.hue+',80%,55%,.10)');
-      grad.addColorStop(.5,'hsla('+o.hue+',75%,45%,.04)');
-      grad.addColorStop(1,'hsla('+o.hue+',70%,40%,0)');
-      ctx.fillStyle=grad;
-      ctx.fillRect(0,0,w,h);
+      const R=o.r*pulse, sp=orbSprites[o.hue]||orbSprites[200];
+      // drawImage sprite tại tâm orb thay vì tô gradient toàn màn hình (giảm overdraw)
+      ctx.drawImage(sp, Math.floor(o.x*w-R), Math.floor(o.y*h-R), R*2, R*2);
     });
     
     // ── Cyber grid (subtle perspective) ──
@@ -1777,12 +1797,11 @@ document.addEventListener('DOMContentLoaded',()=>{
       ctx.fillStyle='hsla('+p.hue+',90%,65%,'+a+')';
       ctx.fill();
       
-      // Glow
-      const g=ctx.createRadialGradient(p.x*w,p.y*h,0,p.x*w,p.y*h,p.size*5);
-      g.addColorStop(0,'hsla('+p.hue+',90%,60%,'+(a*.3)+')');
-      g.addColorStop(1,'hsla('+p.hue+',90%,60%,0)');
-      ctx.fillStyle=g;
-      ctx.fillRect(p.x*w-p.size*5,p.y*h-p.size*5,p.size*10,p.size*10);
+      // Glow — sprite vẽ sẵn (không tạo gradient mỗi frame); globalAlpha thay cho alpha-stop
+      const gr=p.size*5, sp=glowSprites[p.hue]||glowSprites[210];
+      ctx.globalAlpha=a*.3;
+      ctx.drawImage(sp, Math.floor(p.x*w-gr), Math.floor(p.y*h-gr), gr*2, gr*2);
+      ctx.globalAlpha=1;
     });
     
     // ── Light streaks (energy beams flying horizontally) ──
