@@ -1422,9 +1422,18 @@ function saveMfEdit(){
 }
 function deleteEditMonthlyFee(){if(_mfEditId==null)return;const id=_mfEditId;closeMfEdit();deleteMonthlyFee(id);}
 
-// Tổng tiền trả góp mỗi tháng — chỉ tính các khoản CHƯA trả xong
+// Số tiền 1 khoản phải trả trong 1 tháng dương lịch cụ thể (ym = year*12 + month, month 0-11).
+// Quy ước: kỳ ĐẦU tính vào ĐÚNG tháng bắt đầu (index 0 = tháng của startDate).
+function instDueForYM(inst, ym){
+  const s=new Date(inst.startDate);
+  const i=ym-(s.getFullYear()*12+s.getMonth());
+  return (i>=0 && i<inst.months) ? instAmtForMonth(inst,i) : 0;
+}
+// Tổng trả góp phải trả trong THÁNG HIỆN TẠI (theo lịch + ngày bắt đầu).
+// Đổi ngày bắt đầu → tháng đến hạn đổi theo → tổng cập nhật ngay.
 function getMonthlyInstallmentTotal(){
-  return installments.reduce((sum,inst)=>sum+instMonthlyDue(inst),0);
+  const now=new Date(), curYM=now.getFullYear()*12+now.getMonth();
+  return installments.reduce((sum,inst)=>sum+instDueForYM(inst,curYM),0);
 }
 function getMonthlyFeesTotal(){
   return monthlyFees.reduce((sum,f)=>sum+(f.amount||0),0);
@@ -1478,9 +1487,10 @@ function renderTgSummary(){
   const tg = getMonthlyInstallmentTotal();
   const fees = getMonthlyFeesTotal();
   const total = tg + fees;
-  if(total<=0){ el.innerHTML=''; return; }
   const cpt=v=>v>=1e6?fmtTr(v):Math.round(v/1000)+'k';   // gọn cho ô lịch
   const sched=getUpcomingSchedule();
+  // Vẫn hiện thẻ nếu tháng này chưa tới hạn (tổng=0) nhưng có khoản sẽ trả ở các tháng tới
+  if(total<=0 && !sched.rows.length){ el.innerHTML=''; return; }
   let fcHtml='';
   if(sched.rows.length){
     const items=sched.rows.map(r=>{
@@ -1501,7 +1511,7 @@ function renderTgSummary(){
     </div>`;
   }
   el.innerHTML = `<div class="card tg-summary">
-    <div class="tg-summary-title">📅 Tổng phải trả mỗi tháng</div>
+    <div class="tg-summary-title">📅 Tổng phải trả tháng này</div>
     <div class="tg-summary-total">${fmt(total)}</div>
     <div class="tg-summary-break">
       <div><span class="dot blue"></span>Trả góp: <strong>${fmt(tg)}</strong></div>
