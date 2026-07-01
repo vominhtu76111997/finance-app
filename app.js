@@ -172,7 +172,20 @@ function setChiType(type){
     btn.textContent=type==='normal'?'− Thêm chi tiêu':'⚡ Thêm chi ngoài';
     btn.className=type==='normal'?'btn-full btn-full-red':'btn-full btn-full-amber';
   }
+  // Chạm/click đổi loại chi → sáng nhanh các ô bị tác động (chạy cả trên mobile, không cần hover)
+  flashHighlight(type);
   playClick();
+}
+
+/* Sáng tạm các ô liên quan ~1.5s khi chạm/click (bổ sung cho hover trên desktop). */
+let _flashTimer=null;
+function flashHighlight(kind){
+  try{
+    if(typeof hlOn!=='function')return;
+    clearTimeout(_flashTimer);
+    hlOn(kind);
+    _flashTimer=setTimeout(function(){try{hlOff();}catch(e){}},1500);
+  }catch(e){}
 }
 
 /* ── ADD TX (smart amount) ── */
@@ -1520,7 +1533,27 @@ function renderSalaryProjection(){
   if(setup)setup.style.display='none';
   const projColor=p.projected>=0?'#1d9e75':'#d85a30';
   const rangeTxt=p.n>0?`${monShort(p.curM)} → Th12/${p.year} · ${p.n} tháng`:`Năm ${p.year} đã gần kết thúc`;
-  const netPerAvg=p.n>0?(p.totalSalary-p.totalExpense)/p.n:0;
+  const totalSurplus=p.totalSalary-p.totalExpense;
+  const cpt=v=>{const a=Math.abs(v);const s=a>=1e6?(a/1e6).toLocaleString('vi-VN',{maximumFractionDigits:2})+'tr':Math.round(a/1000)+'k';return (v<0?'−':'')+s;};
+  // Bảng từng tháng: Lương − Phải trả = Dư (khớp "Lịch phải trả" bên tab Trả Góp)
+  let perMonthHtml='';
+  if(p.n>0){
+    const items=p.months.map(x=>{
+      const surplus=p.salary-x.expense;
+      const sc=surplus>=0?'#1d9e75':'#d85a30';
+      const tip=`Th${x.m+1}/${p.year}: lương ${fmtVN(p.salary)} − phải trả ${fmtVN(x.expense)} = ${surplus<0?'−':'+'}${fmtVN(Math.abs(surplus))}`+(x.inst>0?` (trả góp ${fmtVN(x.inst)}${x.fees>0?' + phí '+fmtVN(x.fees):''})`:(x.fees>0?' (chỉ phí cố định)':' (không phải trả)'));
+      return `<div class="tg-fc-item${x.m===p.curM?' now':''}" title="${tip}">
+        <span class="tg-fc-month">Th${x.m+1}<br><span class="tg-fc-yr">'${String(p.year).slice(-2)}</span></span>
+        <span class="tg-fc-amt" style="color:${sc};">${surplus<0?'−':'+'}${cpt(Math.abs(surplus))}</span>
+        <span style="font-size:8px;color:var(--text3);margin-top:2px;">trả ${cpt(x.expense)}</span>
+      </div>`;
+    }).join('');
+    perMonthHtml=`<div class="tg-forecast" style="margin-top:12px;">
+      <div class="tg-forecast-title">🗓 Để dành mỗi tháng (lương − phải trả) — kéo ngang</div>
+      <div class="tg-forecast-row">${items}</div>
+      <div class="tg-fc-note">Tổng để dành ${p.n} tháng: <strong style="color:${totalSurplus>=0?'#1d9e75':'#d85a30'}">${totalSurplus<0?'−':'+'}${fmt(Math.abs(totalSurplus))}</strong> · số phải trả khớp với “Lịch phải trả” bên tab <strong>Trả Góp</strong>.</div>
+    </div>`;
+  }
   res.innerHTML=`
     <div style="text-align:center;padding:6px 0 12px;">
       <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Dự kiến có vào cuối năm ${p.year}</div>
@@ -1541,9 +1574,7 @@ function renderSalaryProjection(){
         <div class="week-metric-lbl">💳 Phải trả ${p.n} tháng<br>(trả góp + phí cố định)</div>
       </div>
     </div>
-    <div style="font-size:10.5px;color:var(--text3);margin-top:10px;line-height:1.6;">
-      ${p.n>0?`Mỗi tháng để dành trung bình <b style="color:${netPerAvg>=0?'#1d9e75':'#d85a30'}">${netPerAvg<0?'−':'+'}${fmt(Math.abs(netPerAvg))}</b>. Tiền phải trả lấy đúng theo lịch trả góp bên tab <b>Trả Góp</b> (khoản nào hết hạn giữa năm sẽ tự trừ ít lại).`:`Đã hết tháng trong năm để dự phóng — tài sản cuối năm ≈ tiết kiệm hiện tại.`}
-    </div>`;
+    ${perMonthHtml}`;
 }
 
 function renderMonthlyFees(){
