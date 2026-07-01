@@ -177,16 +177,21 @@ function setChiType(type){
   playClick();
 }
 
-/* Sáng tạm các ô liên quan ~1.5s khi chạm/click (bổ sung cho hover trên desktop). */
-let _flashTimer=null;
+/* Sáng tạm các ô liên quan ~1.8s khi chạm/click (bổ sung cho hover trên desktop).
+   Lưu _flashKind để updateAll() render lại vẫn giữ được vệt sáng (đồng bộ Firebase
+   có thể gọi updateAll bất kỳ lúc nào và vẽ lại #dashMetrics, xoá mất class). */
+let _flashTimer=null,_flashKind=null;
 function flashHighlight(kind){
   try{
     if(typeof hlOn!=='function')return;
     clearTimeout(_flashTimer);
+    _flashKind=kind;
     hlOn(kind);
-    _flashTimer=setTimeout(function(){try{hlOff();}catch(e){}},1500);
+    _flashTimer=setTimeout(function(){_flashKind=null;try{hlOff();}catch(e){}},1800);
   }catch(e){}
 }
+// Áp lại vệt sáng đang hoạt động sau khi #dashMetrics được vẽ lại.
+function reapplyFlash(){if(_flashKind){try{hlOn(_flashKind);}catch(e){}}}
 
 /* ── ADD TX (smart amount) ── */
 function addTx(type){
@@ -234,7 +239,7 @@ function updateAll(){
     <div class="metric" data-m="assets"><div class="label">Tổng tài sản</div><div class="val ${assets>=0?'val-white':'val-red'}">${fmt(assets)}</div><div class="sub-val">Số dư + Tài khoản + Đầu tư</div></div>
     <div class="metric" data-m="eoy"><div class="label">Tài sản cuối năm ${eoy.year}</div><div class="val ${eoy.projected>=0?'val-white':'val-red'}">${eoy.projected<0?'−':''}${fmt(eoy.projected)}</div><div class="sub-val">${eoy.n>0?(salaryData?`Dự phóng · còn ${eoy.n} tháng`:`Nhập lương tháng để dự phóng · còn ${eoy.n} tháng`):'Năm nay sắp kết thúc'}</div></div>
     <div class="metric" data-m="savings"><div class="label">Tiết kiệm</div><div class="val ${sav>=0?'val-green':'val-red'}">${sav>=0?'':'−'}${fmt(Math.abs(sav))}</div><div class="sub-val">${monthMoneyData?'Tổng tài sản − tiền dùng còn lại':'Chưa đặt tiền dùng trong tháng'}</div></div>`;
-  renderMonthList(mTx);renderMonthChart(mTx);renderMonthMoney();renderSalaryProjection();try{animMetrics({assets:assets,eoy:eoy.projected,savings:sav});}catch(e){console.warn("anim",e);}try{renderInsights(mTx);}catch(e){console.warn("insight",e);}
+  renderMonthList(mTx);renderMonthChart(mTx);renderMonthMoney();renderSalaryProjection();try{animMetrics({assets:assets,eoy:eoy.projected,savings:sav});}catch(e){console.warn("anim",e);}try{renderInsights(mTx);}catch(e){console.warn("insight",e);}try{reapplyFlash();}catch(e){}
 }
 
 function renderMonthList(txs){
@@ -1469,12 +1474,18 @@ function getEndOfYearProjection(){
   const curY=now.getFullYear(), curM=now.getMonth();
   const savings=getSavings();
   const salary=salaryData?(salaryData.amount||0):0;
-  const fees=getMonthlyFeesTotal();
+  // NGUỒN DUY NHẤT: dùng đúng "Lịch phải trả các tháng tới" của tab Trả Góp
+  // → số phải trả từng tháng ở đây luôn TRÙNG KHỚP với tab Trả Góp, không tự tính lại.
+  const sched=getUpcomingSchedule();
+  const fees=sched.fees;
+  const rowMap={}; sched.rows.forEach(r=>{rowMap[r.ym]=r;});
   const months=[];
   for(let m=curM;m<=11;m++){
     const ym=curY*12+m;
-    const inst=installments.reduce((s,it)=>s+instDueForYM(it,ym),0);
-    months.push({m,inst,fees,expense:inst+fees});
+    const r=rowMap[ym];
+    const inst=r?r.inst:0;
+    const expense=r?r.total:fees;   // ngoài phạm vi lịch trả góp → chỉ còn phí cố định
+    months.push({m,ym,inst,fees,expense});
   }
   const n=months.length;
   const totalSalary=salary*n;
@@ -1541,17 +1552,17 @@ function renderSalaryProjection(){
     const items=p.months.map(x=>{
       const surplus=p.salary-x.expense;
       const sc=surplus>=0?'#1d9e75':'#d85a30';
-      const tip=`Th${x.m+1}/${p.year}: lương ${fmtVN(p.salary)} − phải trả ${fmtVN(x.expense)} = ${surplus<0?'−':'+'}${fmtVN(Math.abs(surplus))}`+(x.inst>0?` (trả góp ${fmtVN(x.inst)}${x.fees>0?' + phí '+fmtVN(x.fees):''})`:(x.fees>0?' (chỉ phí cố định)':' (không phải trả)'));
-      return `<div class="tg-fc-item${x.m===p.curM?' now':''}" title="${tip}">
+      const tip=`Th${x.m+1}/${p.year}: lương ${fmtVN(p.salary)} − phải trả ${fmtVN(x.expense)} = còn dư ${surplus<0?'−':''}${fmtVN(Math.abs(surplus))}`+(x.inst>0?` (trả góp ${fmtVN(x.inst)}${x.fees>0?' + phí '+fmtVN(x.fees):''})`:(x.fees>0?' (chỉ phí cố định)':' (không phải trả)'));
+      return `<div class="tg-fc-item wide${x.m===p.curM?' now':''}" title="${tip}">
         <span class="tg-fc-month">Th${x.m+1}<br><span class="tg-fc-yr">'${String(p.year).slice(-2)}</span></span>
-        <span class="tg-fc-amt" style="color:${sc};">${surplus<0?'−':'+'}${cpt(Math.abs(surplus))}</span>
-        <span style="font-size:8px;color:var(--text3);margin-top:2px;">trả ${cpt(x.expense)}</span>
+        <span class="tg-fc-line"><span class="tg-fc-k">Trả</span><span class="tg-fc-amt" style="color:#d85a30;">${cpt(x.expense)}</span></span>
+        <span class="tg-fc-line"><span class="tg-fc-k">Dư</span><span class="tg-fc-amt" style="color:${sc};">${surplus<0?'−':'+'}${cpt(Math.abs(surplus))}</span></span>
       </div>`;
     }).join('');
     perMonthHtml=`<div class="tg-forecast" style="margin-top:12px;">
-      <div class="tg-forecast-title">🗓 Để dành mỗi tháng (lương − phải trả) — kéo ngang</div>
+      <div class="tg-forecast-title">🗓 Từng tháng: phải Trả & còn Dư (lương ${fmt(p.salary)}) — kéo ngang</div>
       <div class="tg-forecast-row">${items}</div>
-      <div class="tg-fc-note">Tổng để dành ${p.n} tháng: <strong style="color:${totalSurplus>=0?'#1d9e75':'#d85a30'}">${totalSurplus<0?'−':'+'}${fmt(Math.abs(totalSurplus))}</strong> · số phải trả khớp với “Lịch phải trả” bên tab <strong>Trả Góp</strong>.</div>
+      <div class="tg-fc-note">Dòng <strong style="color:#d85a30;">Trả</strong> khớp đúng “Lịch phải trả” bên tab <strong>Trả Góp</strong> · <strong style="color:#1d9e75;">Dư</strong> = lương − phải trả. Tổng để dành ${p.n} tháng: <strong style="color:${totalSurplus>=0?'#1d9e75':'#d85a30'}">${totalSurplus<0?'−':'+'}${fmt(Math.abs(totalSurplus))}</strong>.</div>
     </div>`;
   }
   res.innerHTML=`
