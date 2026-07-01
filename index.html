@@ -101,6 +101,31 @@
     </div>
     <div id="monthMoneyResult"></div>
   </div>
+  <!-- WIDGET: Dự phóng tài sản cuối năm -->
+  <div class="card" id="salaryCard" style="margin-bottom:12px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div class="card-title" style="color:var(--accent2);margin:0;">📅 Dự phóng tài sản cuối năm</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn" onclick="editSalary()" style="font-size:10px;padding:4px 10px;" title="Sửa lương">✏️ Sửa</button>
+        <button class="btn" onclick="resetSalary()" style="font-size:10px;padding:4px 10px;" title="Xóa lương">✕ Xóa</button>
+      </div>
+    </div>
+    <div id="salarySetup">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:flex-end;">
+        <div class="field" style="margin:0;">
+          <label>Lương hằng tháng (nhập 15000 = 15,000,000₫)</label>
+          <div class="smart-input-wrap">
+            <input type="number" id="salaryInput" placeholder="VD: 15000" step="any" min="0"
+              oninput="smartPreview(this,'salaryPreview')"
+              onkeydown="if(event.key==='Enter')saveSalary()"/>
+            <span class="smart-preview" id="salaryPreview"></span>
+          </div>
+        </div>
+        <button class="btn btn-accent" onclick="saveSalary()" style="height:36px;">Lưu</button>
+      </div>
+    </div>
+    <div id="salaryResult"></div>
+  </div>
   <div class="entry-row">
     <div class="card" id="thuFormCard">
       <div class="card-title green">↗ Thêm khoản thu</div>

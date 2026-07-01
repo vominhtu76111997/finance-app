@@ -215,14 +215,13 @@ function updateAll(){
   const net=thu-chi;
   const assets=sodu+accTotal;
   const sav=getSavings();              // gọi 1 lần thay vì 4
+  const eoy=getEndOfYearProjection();  // dự phóng tài sản tích lũy cuối năm
   $('monthLabel').textContent=monthLabel();
   $('dashMetrics').innerHTML=`
     <div class="metric" data-m="assets"><div class="label">Tổng tài sản</div><div class="val ${assets>=0?'val-white':'val-red'}">${fmt(assets)}</div><div class="sub-val">Số dư + Tài khoản + Đầu tư</div></div>
-    <div class="metric" data-m="thu"><div class="label">Thu tháng</div><div class="val val-green">${fmt(thu)}</div><div class="sub-val">${thuN} giao dịch</div></div>
-    <div class="metric" data-m="chi"><div class="label">Chi tháng</div><div class="val val-red">${fmt(chi)}</div><div class="sub-val">${chiN} giao dịch</div></div>
-    <div class="metric" data-m="net"><div class="label">Ròng</div><div class="val ${net>=0?'val-green':'val-red'}">${net>=0?'+':''}${fmt(net)}</div><div class="sub-val">${net>=0?'Thặng dư':'Thâm hụt'}</div></div>
+    <div class="metric" data-m="eoy"><div class="label">Tài sản cuối năm ${eoy.year}</div><div class="val ${eoy.projected>=0?'val-white':'val-red'}">${eoy.projected<0?'−':''}${fmt(eoy.projected)}</div><div class="sub-val">${eoy.n>0?(salaryData?`Dự phóng · còn ${eoy.n} tháng`:`Nhập lương tháng để dự phóng · còn ${eoy.n} tháng`):'Năm nay sắp kết thúc'}</div></div>
     <div class="metric" data-m="savings"><div class="label">Tiết kiệm</div><div class="val ${sav>=0?'val-green':'val-red'}">${sav>=0?'':'−'}${fmt(Math.abs(sav))}</div><div class="sub-val">${monthMoneyData?'Tổng tài sản − tiền dùng còn lại':'Chưa đặt tiền dùng trong tháng'}</div></div>`;
-  renderMonthList(mTx);renderMonthChart(mTx);renderMonthMoney();try{animMetrics({assets:assets,thu:thu,chi:chi,net:net,savings:sav});}catch(e){console.warn("anim",e);}try{renderInsights(mTx);}catch(e){console.warn("insight",e);}
+  renderMonthList(mTx);renderMonthChart(mTx);renderMonthMoney();renderSalaryProjection();try{animMetrics({assets:assets,eoy:eoy.projected,savings:sav});}catch(e){console.warn("anim",e);}try{renderInsights(mTx);}catch(e){console.warn("insight",e);}
 }
 
 function renderMonthList(txs){
@@ -560,8 +559,8 @@ function renderSettings(){
 
 /* ── EXPORT/IMPORT ── */
 function exportCSV(){if(!txData.length){showToast('Không có',false);return;}const rows=[['Ngày','Giờ','Loại','Danh mục','Mô tả','Số tiền']];txData.forEach(t=>{const d=new Date(t.date);rows.push([d.toLocaleDateString('vi-VN'),d.toLocaleTimeString('vi-VN'),t.type==='thu'?'Thu':'Chi',t.cat,t.note,t.amount]);});const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download='finance.csv';a.click();showToast('Xuất CSV');}
-function exportJSON(){const d={txData,catsChi,catsThu,budgets,investments,accounts,opening,installments,monthlyFees,exportedAt:new Date().toISOString()};const a=document.createElement('a');a.href='data:application/json,'+encodeURIComponent(JSON.stringify(d,null,2));a.download='finance_backup.json';a.click();showToast('Backup xong');}
-function importJSON(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(!confirm('Ghi đè?'))return;if(d.txData){txData=d.txData;save();}if(d.catsChi){catsChi=d.catsChi;saveCatsChi();}if(d.catsThu){catsThu=d.catsThu;saveCatsThu();}if(d.budgets){budgets=d.budgets;saveBudgets();}if(d.investments){investments=d.investments;saveInv();}if(d.accounts){accounts=d.accounts;saveAccounts();}if(d.installments){installments=d.installments;saveInstallments();}if(d.monthlyFees){monthlyFees=d.monthlyFees;saveMonthlyFees();}if(d.opening!==undefined){opening=d.opening;localStorage.setItem('fin_opening',opening);$('openingBal').value=opening||'';}rebuildSelects();updateAll();showToast('Import: '+txData.length+' GD');cloudPushAll();}catch(err){showToast('File lỗi',false);}};r.readAsText(file);e.target.value='';}
+function exportJSON(){const d={txData,catsChi,catsThu,budgets,investments,accounts,opening,installments,monthlyFees,salary:salaryData,exportedAt:new Date().toISOString()};const a=document.createElement('a');a.href='data:application/json,'+encodeURIComponent(JSON.stringify(d,null,2));a.download='finance_backup.json';a.click();showToast('Backup xong');}
+function importJSON(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(!confirm('Ghi đè?'))return;if(d.txData){txData=d.txData;save();}if(d.catsChi){catsChi=d.catsChi;saveCatsChi();}if(d.catsThu){catsThu=d.catsThu;saveCatsThu();}if(d.budgets){budgets=d.budgets;saveBudgets();}if(d.investments){investments=d.investments;saveInv();}if(d.accounts){accounts=d.accounts;saveAccounts();}if(d.installments){installments=d.installments;saveInstallments();}if(d.monthlyFees){monthlyFees=d.monthlyFees;saveMonthlyFees();}if(d.salary!==undefined){salaryData=d.salary||null;saveSalaryData();}if(d.opening!==undefined){opening=d.opening;localStorage.setItem('fin_opening',opening);$('openingBal').value=opening||'';}rebuildSelects();updateAll();showToast('Import: '+txData.length+' GD');cloudPushAll();}catch(err){showToast('File lỗi',false);}};r.readAsText(file);e.target.value='';}
 
 
 /* ── CLOUD SYNC (Pure JSONP) ── */
@@ -659,6 +658,8 @@ function startLivePolling(){
   }
 }
 let monthMoneyData=JSON.parse(localStorage.getItem('fin_month_money')||'null');
+// Lương hằng tháng (cố định) — dùng để dự phóng tài sản cuối năm. {amount, createdAt}
+let salaryData=JSON.parse(localStorage.getItem('fin_salary')||'null');
 // Migration từ ngân sách tuần cũ
 if(!monthMoneyData){
   const _old=JSON.parse(localStorage.getItem('fin_week_budget')||'null');
@@ -763,7 +764,7 @@ function fbTree(){
   const txObj={};txData.forEach(function(t){if(t&&t.id!=null)txObj[String(t.id)]=t;});
   const invObj={};investments.forEach(function(i){if(i&&i.id!=null)invObj[String(i.id)]=i;});
   const accObj={};accounts.forEach(function(a){if(a&&a.id!=null)accObj[String(a.id)]=a;});
-  const settingsObj={opening:opening,catsChi:catsChi,catsThu:catsThu,budgets:budgets,monthMoney:monthMoneyData||null,installments:installments,monthlyFees:monthlyFees};
+  const settingsObj={opening:opening,catsChi:catsChi,catsThu:catsThu,budgets:budgets,monthMoney:monthMoneyData||null,salary:salaryData||null,installments:installments,monthlyFees:monthlyFees};
   return {transactions:txObj,investments:invObj,accounts:accObj,settings:JSON.stringify(settingsObj)};
 }
 // Hợp nhất theo từng-mục: bắt đầu từ server, GIỮ mục mới thêm cục bộ (chưa kịp đẩy),
@@ -828,8 +829,10 @@ function fbApply(val){
       if(s.catsThu)catsThu=s.catsThu;
       budgets=s.budgets||{};
       monthMoneyData=s.monthMoney||null;
+      salaryData=s.salary||null;
       installments=s.installments||[];
       monthlyFees=s.monthlyFees||[];
+      if(salaryData)localStorage.setItem('fin_salary',JSON.stringify(salaryData));else localStorage.removeItem('fin_salary');
       localStorage.setItem('fin_monthly_fees',JSON.stringify(monthlyFees));
       localStorage.setItem('fin_cats_chi',JSON.stringify(catsChi));
       localStorage.setItem('fin_cats_thu',JSON.stringify(catsThu));
@@ -1437,6 +1440,110 @@ function getMonthlyInstallmentTotal(){
 }
 function getMonthlyFeesTotal(){
   return monthlyFees.reduce((sum,f)=>sum+(f.amount||0),0);
+}
+
+/* ════════════════════════════════════════════
+   DỰ PHÓNG TÀI SẢN CUỐI NĂM
+   projected = tiết kiệm hiện tại
+             + lương × (số tháng còn lại tới hết tháng 12)
+             − chi phải trả mỗi tháng (trả góp theo lịch + phí cố định)
+   Số tháng còn lại: tính từ THÁNG SAU đến hết tháng 12 (tiết kiệm hiện tại
+   đã là điểm xuất phát của tháng này). Chi trả góp lấy đúng theo lịch từng
+   tháng nên khoản nào kết thúc giữa năm sẽ tự hết, số liệu sát thực tế.
+════════════════════════════════════════════ */
+function getEndOfYearProjection(){
+  const now=new Date();
+  const curY=now.getFullYear(), curM=now.getMonth();
+  const savings=getSavings();
+  const salary=salaryData?(salaryData.amount||0):0;
+  const fees=getMonthlyFeesTotal();
+  const months=[];
+  for(let m=curM+1;m<=11;m++){
+    const ym=curY*12+m;
+    const inst=installments.reduce((s,it)=>s+instDueForYM(it,ym),0);
+    months.push({m,inst,fees,expense:inst+fees});
+  }
+  const n=months.length;
+  const totalSalary=salary*n;
+  const totalExpense=months.reduce((s,x)=>s+x.expense,0);
+  const projected=savings+totalSalary-totalExpense;
+  return {year:curY,curM,n,savings,salary,fees,totalSalary,totalExpense,projected,months};
+}
+
+/* ── LƯƠNG HẰNG THÁNG (persist + sync qua settings) ── */
+function saveSalaryData(){
+  if(salaryData)localStorage.setItem('fin_salary',JSON.stringify(salaryData));
+  else localStorage.removeItem('fin_salary');
+  setDirty();fbSaveAll();cloudSaveSettings();
+}
+function saveSalary(){
+  const raw=parseFloat($('salaryInput').value)||0;
+  if(!raw){showToast('Nhập số tiền lương!',false);return;}
+  salaryData={amount:smartAmount(raw),createdAt:new Date().toISOString()};
+  saveSalaryData();
+  $('salaryInput').value='';
+  const p=$('salaryPreview');if(p)p.textContent='';
+  updateAll();
+  playSuccess();showToast('Đã lưu lương & dự phóng ✓');
+}
+function editSalary(){
+  if(!salaryData){showToast('Chưa có lương, nhập mới bên dưới',false);return;}
+  const setup=$('salarySetup');
+  if(setup)setup.style.display='';
+  $('salaryInput').value=Math.round((salaryData.amount||0)/1000);
+  smartPreview($('salaryInput'),'salaryPreview');
+  $('salaryInput').focus();$('salaryInput').select();
+}
+function resetSalary(){
+  if(!salaryData){showToast('Chưa có lương',false);return;}
+  if(!confirm('Xóa lương hằng tháng?'))return;
+  salaryData=null;
+  saveSalaryData();
+  $('salaryInput').value='';
+  const p=$('salaryPreview');if(p)p.textContent='';
+  updateAll();
+  showToast('Đã xóa lương');
+}
+function renderSalaryProjection(){
+  const res=$('salaryResult'), setup=$('salarySetup');
+  if(!res)return;
+  const p=getEndOfYearProjection();
+  const monShort=m=>'Th'+(m+1);
+  if(!salaryData){
+    if(setup)setup.style.display='';
+    res.innerHTML=`<div style="font-size:11px;color:var(--text3);padding:8px 0;line-height:1.65;">
+      Nhập <b>lương hằng tháng</b> (chỉ nhập 1 lần vì cố định) để xem bạn sẽ tích lũy được bao nhiêu vào <b>cuối năm ${p.year}</b>.<br>
+      Công thức: <b style="color:var(--text2)">Tiết kiệm hiện tại + Lương × số tháng còn lại − Tiền phải trả mỗi tháng (trả góp + phí cố định)</b>.
+    </div>`;
+    return;
+  }
+  if(setup)setup.style.display='none';
+  const projColor=p.projected>=0?'#1d9e75':'#d85a30';
+  const rangeTxt=p.n>0?`${monShort(p.curM+1)} → Th12/${p.year} · ${p.n} tháng`:`Năm ${p.year} đã gần kết thúc`;
+  const netPerAvg=p.n>0?(p.totalSalary-p.totalExpense)/p.n:0;
+  res.innerHTML=`
+    <div style="text-align:center;padding:6px 0 12px;">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Dự kiến có vào cuối năm ${p.year}</div>
+      <div style="font-size:28px;font-weight:800;letter-spacing:-.5px;color:${projColor};text-shadow:0 0 14px ${projColor}33;">${p.projected<0?'−':''}${fmt(p.projected)}</div>
+      <div style="font-size:10.5px;color:var(--text3);margin-top:3px;">${rangeTxt}</div>
+    </div>
+    <div class="week-budget-result">
+      <div class="week-metric">
+        <div class="week-metric-val" style="color:var(--text2);font-size:15px;">${p.savings<0?'−':''}${fmt(p.savings)}</div>
+        <div class="week-metric-lbl">🐷 Tiết kiệm hiện tại</div>
+      </div>
+      <div class="week-metric">
+        <div class="week-metric-val" style="color:#1d9e75;font-size:15px;">+${fmt(p.totalSalary)}</div>
+        <div class="week-metric-lbl">💵 Lương ${p.n} tháng<br>(${fmt(p.salary)}/tháng)</div>
+      </div>
+      <div class="week-metric">
+        <div class="week-metric-val" style="color:#d85a30;font-size:15px;">−${fmt(p.totalExpense)}</div>
+        <div class="week-metric-lbl">💳 Phải trả ${p.n} tháng<br>(trả góp + phí cố định)</div>
+      </div>
+    </div>
+    <div style="font-size:10.5px;color:var(--text3);margin-top:10px;line-height:1.6;">
+      ${p.n>0?`Mỗi tháng để dành trung bình <b style="color:${netPerAvg>=0?'#1d9e75':'#d85a30'}">${netPerAvg<0?'−':'+'}${fmt(Math.abs(netPerAvg))}</b>. Tiền phải trả lấy đúng theo lịch trả góp bên tab <b>Trả Góp</b> (khoản nào hết hạn giữa năm sẽ tự trừ ít lại).`:`Đã hết tháng trong năm để dự phóng — tài sản cuối năm ≈ tiết kiệm hiện tại.`}
+    </div>`;
 }
 
 function renderMonthlyFees(){
@@ -2376,9 +2483,9 @@ function renderGoldEvents(){
    HIGHLIGHT LIÊN KẾT: hover form nhập → sáng các ô bị tác động
 ──────────────────────────────────────────── */
 const HL_MAPS={
-  normal:['assets','chi','net','mm'],          // chi thường: tài sản↓, chi↑, ròng, tiền dùng tháng↓ (tiết kiệm KHÔNG đổi)
-  extra:['assets','chi','net','savings'],      // chi ngoài: tài sản↓, chi↑, ròng, tiết kiệm↓
-  thu:['assets','thu','net','savings']         // thu nhập: tài sản↑, thu↑, ròng, tiết kiệm↑
+  normal:['assets','mm'],                       // chi thường: tài sản↓, tiền dùng tháng↓ (tiết kiệm KHÔNG đổi)
+  extra:['assets','savings','eoy'],             // chi ngoài: tài sản↓, tiết kiệm↓, dự phóng cuối năm↓
+  thu:['assets','savings','eoy']                // thu nhập: tài sản↑, tiết kiệm↑, dự phóng cuối năm↑
 };
 const HL_COLORS={normal:'#E8B44A',extra:'#d85a30',thu:'#1d9e75'};
 
@@ -2430,9 +2537,7 @@ function animMetrics(cur){
   const S=animMetrics._s||(animMetrics._s={prev:null,frames:{}});
   const F={
     assets:v=>fmt(v),
-    thu:v=>fmt(v),
-    chi:v=>fmt(v),
-    net:v=>(v>=0?'+':'')+fmt(v),
+    eoy:v=>(v<0?'−':'')+fmt(v),
     savings:v=>(v>=0?'':'−')+fmt(Math.abs(v))
   };
   if(S.prev){
