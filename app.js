@@ -1447,8 +1447,8 @@ function getMonthlyFeesTotal(){
    projected = tiết kiệm hiện tại
              + lương × (số tháng còn lại tới hết tháng 12)
              − chi phải trả mỗi tháng (trả góp theo lịch + phí cố định)
-   Số tháng còn lại: tính từ THÁNG SAU đến hết tháng 12 (tiết kiệm hiện tại
-   đã là điểm xuất phát của tháng này). Chi trả góp lấy đúng theo lịch từng
+   Số tháng còn lại: tính TỪ THÁNG HIỆN TẠI đến hết tháng 12 (kể cả tháng này).
+   VD tháng 7 → 6 tháng: 7,8,9,10,11,12. Chi trả góp lấy đúng theo lịch từng
    tháng nên khoản nào kết thúc giữa năm sẽ tự hết, số liệu sát thực tế.
 ════════════════════════════════════════════ */
 function getEndOfYearProjection(){
@@ -1458,7 +1458,7 @@ function getEndOfYearProjection(){
   const salary=salaryData?(salaryData.amount||0):0;
   const fees=getMonthlyFeesTotal();
   const months=[];
-  for(let m=curM+1;m<=11;m++){
+  for(let m=curM;m<=11;m++){
     const ym=curY*12+m;
     const inst=installments.reduce((s,it)=>s+instDueForYM(it,ym),0);
     months.push({m,inst,fees,expense:inst+fees});
@@ -1519,7 +1519,7 @@ function renderSalaryProjection(){
   }
   if(setup)setup.style.display='none';
   const projColor=p.projected>=0?'#1d9e75':'#d85a30';
-  const rangeTxt=p.n>0?`${monShort(p.curM+1)} → Th12/${p.year} · ${p.n} tháng`:`Năm ${p.year} đã gần kết thúc`;
+  const rangeTxt=p.n>0?`${monShort(p.curM)} → Th12/${p.year} · ${p.n} tháng`:`Năm ${p.year} đã gần kết thúc`;
   const netPerAvg=p.n>0?(p.totalSalary-p.totalExpense)/p.n:0;
   res.innerHTML=`
     <div style="text-align:center;padding:6px 0 12px;">
