@@ -2525,9 +2525,9 @@ function renderGoldEvents(){
    HIGHLIGHT LIÊN KẾT: hover form nhập → sáng các ô bị tác động
 ──────────────────────────────────────────── */
 const HL_MAPS={
-  normal:['assets','mm'],                       // chi thường: tài sản↓, tiền dùng tháng↓ (tiết kiệm KHÔNG đổi)
-  extra:['assets','savings','eoy'],             // chi ngoài: tài sản↓, tiết kiệm↓, dự phóng cuối năm↓
-  thu:['assets','savings','eoy']                // thu nhập: tài sản↑, tiết kiệm↑, dự phóng cuối năm↑
+  normal:['assets','mm'],                        // chi thường: tài sản↓, tiền dùng tháng↓ (tiết kiệm KHÔNG đổi)
+  extra:['assets','savings','eoy','salary'],     // chi ngoài: tài sản↓, tiết kiệm↓, dự phóng cuối năm↓ (card + panel)
+  thu:['assets','savings','eoy','salary']        // thu nhập: tài sản↑, tiết kiệm↑, dự phóng cuối năm↑ (card + panel)
 };
 const HL_COLORS={normal:'#E8B44A',extra:'#d85a30',thu:'#1d9e75'};
 
@@ -2535,19 +2535,20 @@ function hlOn(kind){
   const keys=HL_MAPS[kind];if(!keys)return;
   const col=HL_COLORS[kind];
   const targets=[...document.querySelectorAll('#dashMetrics .metric')];
-  const mm=$('monthMoneyCard');
   targets.forEach(el=>{
     const hit=keys.includes(el.dataset.m);
     el.style.setProperty('--hl',col);
     el.classList.toggle('hl-glow',hit);
     el.classList.toggle('hl-dim',!hit);
   });
-  if(mm){
-    const hit=keys.includes('mm');
-    mm.style.setProperty('--hl',col);
-    mm.classList.toggle('hl-glow',hit);
-    mm.classList.toggle('hl-dim',!hit);
-  }
+  // Các card khác (tiền dùng tháng, panel dự phóng cuối năm) — sáng/mờ theo key
+  [['mm','monthMoneyCard'],['salary','salaryCard']].forEach(([key,id])=>{
+    const el=$(id);if(!el)return;
+    const hit=keys.includes(key);
+    el.style.setProperty('--hl',col);
+    el.classList.toggle('hl-glow',hit);
+    el.classList.toggle('hl-dim',!hit);
+  });
 }
 function hlOff(){
   document.querySelectorAll('.hl-glow,.hl-dim').forEach(el=>{el.classList.remove('hl-glow','hl-dim');});
