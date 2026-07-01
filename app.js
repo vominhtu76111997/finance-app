@@ -177,21 +177,32 @@ function setChiType(type){
   playClick();
 }
 
-/* Sáng tạm các ô liên quan ~1.8s khi chạm/click (bổ sung cho hover trên desktop).
-   Lưu _flashKind để updateAll() render lại vẫn giữ được vệt sáng (đồng bộ Firebase
-   có thể gọi updateAll bất kỳ lúc nào và vẽ lại #dashMetrics, xoá mất class). */
-let _flashTimer=null,_flashKind=null;
+/* Bộ điều khiển vệt sáng — gộp 3 nguồn kích hoạt để tránh chập chờn (nhất là trên mobile):
+     • focus  : đang nhập vào ô thu/chi → GIỮ sáng ổn định, không phụ thuộc hover/timer.
+     • hover  : desktop rê chuột lên card.
+     • flash  : chạm nhanh đổi loại chi (setChiType) → sáng tạm ~1.8s.
+   Ưu tiên focus > hover > flash. Tính kind động theo chiType nên đổi loại chi vẫn đúng.
+   updateAll() render lại #dashMetrics có thể xoá class → reapplyFlash() áp lại theo trạng thái. */
+let _hlHoverKind=null,_hlFocusCard=null,_hlFlashKind=null,_hlFlashTimer=null;
+function _hlKind(){
+  if(_hlFocusCard==='chi')return chiType||'normal';
+  if(_hlFocusCard==='thu')return 'thu';
+  if(_hlHoverKind)return _hlHoverKind;
+  return _hlFlashKind;
+}
+function _hlRefresh(){try{if(typeof hlOn!=='function')return;const k=_hlKind();if(k)hlOn(k);else hlOff();}catch(e){}}
 function flashHighlight(kind){
   try{
     if(typeof hlOn!=='function')return;
-    clearTimeout(_flashTimer);
-    _flashKind=kind;
-    hlOn(kind);
-    _flashTimer=setTimeout(function(){_flashKind=null;try{hlOff();}catch(e){}},1800);
+    clearTimeout(_hlFlashTimer);
+    _hlFlashKind=kind;
+    _hlRefresh();
+    // Hết thời gian flash chỉ tắt nếu KHÔNG còn đang nhập/hover (focus/hover vẫn giữ sáng).
+    _hlFlashTimer=setTimeout(function(){_hlFlashKind=null;_hlRefresh();},1800);
   }catch(e){}
 }
 // Áp lại vệt sáng đang hoạt động sau khi #dashMetrics được vẽ lại.
-function reapplyFlash(){if(_flashKind){try{hlOn(_flashKind);}catch(e){}}}
+function reapplyFlash(){_hlRefresh();}
 
 /* ── ADD TX (smart amount) ── */
 function addTx(type){
@@ -2557,16 +2568,21 @@ function hlOff(){
 (function initHoverLinks(){
   const thuCard=$('thuFormCard'),chiCard=$('chiFormCard');
   if(thuCard){
-    thuCard.addEventListener('mouseenter',()=>hlOn('thu'));
-    thuCard.addEventListener('mouseleave',hlOff);
+    thuCard.addEventListener('mouseenter',()=>{_hlHoverKind='thu';_hlRefresh();});
+    thuCard.addEventListener('mouseleave',()=>{_hlHoverKind=null;_hlRefresh();});
+    // Focus giữ vệt sáng ổn định khi đang nhập (mobile: chạm vào ô → focus, không cần hover)
+    thuCard.addEventListener('focusin',()=>{_hlFocusCard='thu';_hlRefresh();});
+    thuCard.addEventListener('focusout',e=>{if(!thuCard.contains(e.relatedTarget)){_hlFocusCard=null;_hlRefresh();}});
   }
   if(chiCard){
-    chiCard.addEventListener('mouseenter',()=>hlOn(chiType||'normal'));
-    chiCard.addEventListener('mouseleave',hlOff);
-    // Nút chi thường / chi ngoài: preview mapping riêng khi hover từng nút
+    chiCard.addEventListener('mouseenter',()=>{_hlHoverKind=chiType||'normal';_hlRefresh();});
+    chiCard.addEventListener('mouseleave',()=>{_hlHoverKind=null;_hlRefresh();});
+    chiCard.addEventListener('focusin',()=>{_hlFocusCard='chi';_hlRefresh();});
+    chiCard.addEventListener('focusout',e=>{if(!chiCard.contains(e.relatedTarget)){_hlFocusCard=null;_hlRefresh();}});
+    // Nút chi thường / chi ngoài: preview mapping riêng khi hover từng nút (desktop)
     chiCard.querySelectorAll('.chi-type-btn').forEach(btn=>{
-      btn.addEventListener('mouseenter',e=>{e.stopPropagation();hlOn(btn.dataset.val);});
-      btn.addEventListener('mouseleave',()=>hlOn(chiType||'normal'));
+      btn.addEventListener('mouseenter',e=>{e.stopPropagation();_hlHoverKind=btn.dataset.val;_hlRefresh();});
+      btn.addEventListener('mouseleave',()=>{_hlHoverKind=chiType||'normal';_hlRefresh();});
     });
   }
 })();
