@@ -1798,30 +1798,28 @@ function initTilt(){/* disabled — glass style */}
 function animateCount(el,target,duration=800){
   if(!el||!target)return;
   const text=el.textContent;
-  // Extract number from formatted string like "1.234.567" or "−1.234"
-  const isNeg=text.includes('−')||text.includes('-');
-  const numStr=text.replace(/[^0-9]/g,'');
-  const num=parseInt(numStr)||0;
+  // Tách CỤM SỐ (kèm dấu chấm nhóm) ra khỏi chuỗi đã format, ví dụ:
+  //   "₫20.000.000" → số "20.000.000", tiền tố "₫", hậu tố ""
+  //   "−₫1.234"     → số "1.234", tiền tố "−₫" (giữ nguyên dấu âm)
+  const m=text.match(/[\d.]*\d/);
+  if(!m)return;
+  const numStr=m[0];
+  const num=parseInt(numStr.replace(/\./g,''),10)||0;
   if(num===0)return;
-  
+  const pre=text.slice(0,m.index), post=text.slice(m.index+numStr.length);
+
   const start=performance.now();
   const startVal=0;
-  
   function easeOutExpo(t){return t===1?1:1-Math.pow(2,-10*t);}
-  
+
   function tick(now){
-    const elapsed=now-start;
-    const progress=Math.min(elapsed/duration,1);
+    const progress=Math.min((now-start)/duration,1);
     const eased=easeOutExpo(progress);
     const current=Math.round(startVal+(num-startVal)*eased);
-    
-    // Format with dots like Vietnamese number format
-    const formatted=current.toLocaleString('vi-VN');
-    el.textContent=text.replace(numStr,formatted.replace(/\./g,'.'));
-    
+    el.textContent=pre+current.toLocaleString('vi-VN')+post;
     if(progress<1) requestAnimationFrame(tick);
     else{
-      el.textContent=text; // restore exact original
+      el.textContent=text; // khôi phục chuỗi gốc chính xác
       el.classList.add('counting');
       setTimeout(()=>el.classList.remove('counting'),300);
     }
