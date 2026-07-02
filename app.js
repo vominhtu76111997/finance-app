@@ -248,7 +248,7 @@ function updateAll(){
   $('monthLabel').textContent=monthLabel();
   $('dashMetrics').innerHTML=`
     <div class="metric" data-m="assets"><div class="label">Tổng tài sản</div><div class="val ${assets>=0?'val-white':'val-red'}">${fmt(assets)}</div><div class="sub-val">Số dư + Tài khoản + Đầu tư</div></div>
-    <div class="metric" data-m="eoy"><div class="label">Tài sản cuối năm ${eoy.year}</div><div class="val ${eoy.projected>=0?'val-white':'val-red'}">${eoy.projected<0?'−':''}${fmt(eoy.projected)}</div><div class="sub-val">${eoy.n>0?(salaryData?`Dự phóng · còn ${eoy.n} tháng`:`Nhập lương tháng để dự phóng · còn ${eoy.n} tháng`):'Năm nay sắp kết thúc'}</div></div>
+    <div class="metric" data-m="eoy"><div class="label">Tài sản cuối năm ${eoy.year}</div><div class="val ${eoy.projected>=0?'val-white':'val-red'}">${eoy.projected<0?'−':''}${fmt(eoy.projected)}</div><div class="sub-val">${salaryData?`Dự phóng · còn ${eoy.n} tháng${eoy.received?` · Th${eoy.curM+1} đã nhận ✓`:''}`:`Nhập lương tháng để dự phóng · còn ${eoy.n} tháng`}</div></div>
     <div class="metric" data-m="savings"><div class="label">Tiết kiệm</div><div class="val ${sav>=0?'val-green':'val-red'}">${sav>=0?'':'−'}${fmt(Math.abs(sav))}</div><div class="sub-val">${monthMoneyData?'Tổng tài sản − tiền dùng còn lại':'Chưa đặt tiền dùng trong tháng'}</div></div>`;
   renderMonthList(mTx);renderMonthChart(mTx);renderMonthMoney();renderSalaryProjection();try{animMetrics({assets:assets,eoy:eoy.projected,savings:sav});}catch(e){console.warn("anim",e);}try{renderInsights(mTx);}catch(e){console.warn("insight",e);}try{reapplyFlash();}catch(e){}
 }
@@ -698,9 +698,10 @@ if(!monthMoneyData){
 function getTotalAssets(){
   const invPnL=investments.reduce((s,i)=>(i.curPrice-i.buyPrice)*i.qty+s,0);
   const accTotal=totalAccounts();
-  const allThu=txData.filter(t=>t.type==='thu').reduce((s,t)=>s+t.amount,0);
-  const allChi=txData.filter(t=>t.type==='chi').reduce((s,t)=>s+t.amount,0);
-  return opening+allThu-allChi+invPnL+accTotal;
+  // 1 vòng lặp cho toàn bộ thu/chi (thay 2 lần filter+reduce trên cả txData)
+  let net=0;
+  for(const t of txData){if(t.type==='thu')net+=t.amount;else if(t.type==='chi')net-=t.amount;}
+  return opening+net+invPnL+accTotal;
 }
 
 // Chi thường đã tiêu KỂ TỪ lúc đặt tiền dùng trong tháng
@@ -1479,12 +1480,17 @@ function getMonthlyFeesTotal(){
    Số tháng còn lại: tính TỪ THÁNG HIỆN TẠI đến hết tháng 12 (kể cả tháng này).
    VD tháng 7 → 6 tháng: 7,8,9,10,11,12. Chi trả góp lấy đúng theo lịch từng
    tháng nên khoản nào kết thúc giữa năm sẽ tự hết, số liệu sát thực tế.
+   "Đã nhận lương tháng này" (salaryData.receivedYM === tháng hiện tại):
+   lương tháng này ĐÃ nằm trong tài khoản/tiết kiệm → KHÔNG cộng nữa, tránh
+   đếm trùng. Qua tháng mới receivedYM lệch tháng → checkbox tự bỏ chọn.
 ════════════════════════════════════════════ */
 function getEndOfYearProjection(){
   const now=new Date();
   const curY=now.getFullYear(), curM=now.getMonth();
+  const curYM=curY*12+curM;
   const savings=getSavings();
   const salary=salaryData?(salaryData.amount||0):0;
+  const received=!!(salaryData&&salaryData.receivedYM===curYM);
   // NGUỒN DUY NHẤT: dùng đúng "Lịch phải trả các tháng tới" của tab Trả Góp
   // → số phải trả từng tháng ở đây luôn TRÙNG KHỚP với tab Trả Góp, không tự tính lại.
   const sched=getUpcomingSchedule();
@@ -1496,13 +1502,26 @@ function getEndOfYearProjection(){
     const r=rowMap[ym];
     const inst=r?r.inst:0;
     const expense=r?r.total:fees;   // ngoài phạm vi lịch trả góp → chỉ còn phí cố định
-    months.push({m,ym,inst,fees,expense});
+    const sal=(m===curM&&received)?0:salary;  // lương tháng này đã nhận → không cộng nữa
+    months.push({m,ym,inst,fees,expense,sal});
   }
   const n=months.length;
-  const totalSalary=salary*n;
+  const totalSalary=months.reduce((s,x)=>s+x.sal,0);
   const totalExpense=months.reduce((s,x)=>s+x.expense,0);
   const projected=savings+totalSalary-totalExpense;
-  return {year:curY,curM,n,savings,salary,fees,totalSalary,totalExpense,projected,months};
+  return {year:curY,curM,curYM,n,savings,salary,fees,totalSalary,totalExpense,projected,months,received};
+}
+
+/* Đánh dấu "tháng này đã nhận lương" → không cộng lương tháng hiện tại vào dự phóng
+   (lương đã nằm trong tài khoản/tiết kiệm rồi, cộng nữa là đếm trùng). */
+function toggleSalaryReceived(checked){
+  if(!salaryData){showToast('Chưa nhập lương',false);return;}
+  const now=new Date();
+  salaryData.receivedYM=checked?(now.getFullYear()*12+now.getMonth()):null;
+  saveSalaryData();
+  updateAll();
+  playClick();
+  showToast(checked?'Đã nhận lương tháng này ✓ (không cộng trùng)':'Bỏ đánh dấu nhận lương');
 }
 
 /* ── LƯƠNG HẰNG THÁNG (persist + sync qua settings) ── */
@@ -1514,7 +1533,8 @@ function saveSalaryData(){
 function saveSalary(){
   const raw=parseFloat($('salaryInput').value)||0;
   if(!raw){showToast('Nhập số tiền lương!',false);return;}
-  salaryData={amount:smartAmount(raw),createdAt:new Date().toISOString()};
+  // Giữ cờ "đã nhận lương tháng này" khi chỉ sửa số tiền lương
+  salaryData={amount:smartAmount(raw),createdAt:new Date().toISOString(),receivedYM:(salaryData&&salaryData.receivedYM)||null};
   saveSalaryData();
   $('salaryInput').value='';
   const p=$('salaryPreview');if(p)p.textContent='';
@@ -1561,11 +1581,12 @@ function renderSalaryProjection(){
   let perMonthHtml='';
   if(p.n>0){
     const items=p.months.map(x=>{
-      const surplus=p.salary-x.expense;
+      const isReceived=(x.m===p.curM&&p.received);
+      const surplus=x.sal-x.expense;
       const sc=surplus>=0?'#1d9e75':'#d85a30';
-      const tip=`Th${x.m+1}/${p.year}: lương ${fmtVN(p.salary)} − phải trả ${fmtVN(x.expense)} = còn dư ${surplus<0?'−':''}${fmtVN(Math.abs(surplus))}`+(x.inst>0?` (trả góp ${fmtVN(x.inst)}${x.fees>0?' + phí '+fmtVN(x.fees):''})`:(x.fees>0?' (chỉ phí cố định)':' (không phải trả)'));
+      const tip=`Th${x.m+1}/${p.year}: `+(isReceived?`lương đã nhận (đã nằm trong tiết kiệm, không cộng nữa)`:`lương ${fmtVN(x.sal)}`)+` − phải trả ${fmtVN(x.expense)} = ${surplus<0?'−':''}${fmtVN(Math.abs(surplus))}`+(x.inst>0?` (trả góp ${fmtVN(x.inst)}${x.fees>0?' + phí '+fmtVN(x.fees):''})`:(x.fees>0?' (chỉ phí cố định)':' (không phải trả)'));
       return `<div class="tg-fc-item wide${x.m===p.curM?' now':''}" title="${tip}">
-        <span class="tg-fc-month">Th${x.m+1}<br><span class="tg-fc-yr">'${String(p.year).slice(-2)}</span></span>
+        <span class="tg-fc-month">Th${x.m+1}${isReceived?' ✓':''}<br><span class="tg-fc-yr">'${String(p.year).slice(-2)}</span></span>
         <span class="tg-fc-line"><span class="tg-fc-k">Trả</span><span class="tg-fc-amt" style="color:#d85a30;">${cpt(x.expense)}</span></span>
         <span class="tg-fc-line"><span class="tg-fc-k">Dư</span><span class="tg-fc-amt" style="color:${sc};">${surplus<0?'−':'+'}${cpt(Math.abs(surplus))}</span></span>
       </div>`;
@@ -1576,12 +1597,17 @@ function renderSalaryProjection(){
       <div class="tg-fc-note">Dòng <strong style="color:#d85a30;">Trả</strong> khớp đúng “Lịch phải trả” bên tab <strong>Trả Góp</strong> · <strong style="color:#1d9e75;">Dư</strong> = lương − phải trả. Tổng để dành ${p.n} tháng: <strong style="color:${totalSurplus>=0?'#1d9e75':'#d85a30'}">${totalSurplus<0?'−':'+'}${fmt(Math.abs(totalSurplus))}</strong>.</div>
     </div>`;
   }
+  const salMonths=p.received?(p.n-1):p.n;   // số tháng lương thực cộng vào dự phóng
   res.innerHTML=`
     <div style="text-align:center;padding:6px 0 12px;">
       <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Dự kiến có vào cuối năm ${p.year}</div>
       <div style="font-size:28px;font-weight:800;letter-spacing:-.5px;color:${projColor};text-shadow:0 0 14px ${projColor}33;">${p.projected<0?'−':''}${fmt(p.projected)}</div>
       <div style="font-size:10.5px;color:var(--text3);margin-top:3px;">${rangeTxt}</div>
     </div>
+    <label style="display:flex;align-items:center;justify-content:center;gap:7px;font-size:11.5px;color:var(--text2);cursor:pointer;margin-bottom:12px;user-select:none;">
+      <input type="checkbox" ${p.received?'checked':''} onchange="toggleSalaryReceived(this.checked)" style="width:15px;height:15px;accent-color:#1d9e75;cursor:pointer;">
+      Tháng ${p.curM+1} này <b>đã nhận lương</b>${p.received?' <span style="color:#1d9e75;">✓ không cộng trùng</span>':' (đánh dấu để không cộng trùng)'}
+    </label>
     <div class="week-budget-result">
       <div class="week-metric">
         <div class="week-metric-val" style="color:var(--text2);font-size:15px;">${p.savings<0?'−':''}${fmt(p.savings)}</div>
@@ -1589,7 +1615,7 @@ function renderSalaryProjection(){
       </div>
       <div class="week-metric">
         <div class="week-metric-val" style="color:#1d9e75;font-size:15px;">+${fmt(p.totalSalary)}</div>
-        <div class="week-metric-lbl">💵 Lương ${p.n} tháng<br>(${fmt(p.salary)}/tháng)</div>
+        <div class="week-metric-lbl">💵 Lương ${salMonths} tháng${p.received?` (Th${p.curM+1} đã nhận)`:''}<br>(${fmt(p.salary)}/tháng)</div>
       </div>
       <div class="week-metric">
         <div class="week-metric-val" style="color:#d85a30;font-size:15px;">−${fmt(p.totalExpense)}</div>

@@ -469,7 +469,7 @@ html{scroll-behavior:smooth;}
 /* ── HIGHLIGHT LIÊN KẾT KHI HOVER FORM NHẬP ── */
 #dashMetrics .metric,#monthMoneyCard{transition:opacity .28s ease,box-shadow .28s ease,transform .28s ease,border-color .28s ease;}
 .hl-glow{box-shadow:0 0 0 1px var(--hl,#E8B44A),0 0 26px -4px var(--hl,#E8B44A) !important;border-color:var(--hl,#E8B44A) !important;transform:translateY(-3px);opacity:1 !important;position:relative;z-index:2;}
-.hl-dim{opacity:.35;}
+.hl-dim{opacity:.65;}
 
 /* ── COUNT-UP PULSE ── */
 @keyframes hlPulse{0%{box-shadow:0 0 0 0 rgba(232,180,74,.5)}70%{box-shadow:0 0 0 14px rgba(232,180,74,0)}100%{box-shadow:0 0 0 0 rgba(232,180,74,0)}}
