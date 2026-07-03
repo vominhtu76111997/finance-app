@@ -553,19 +553,33 @@ async function fetchLivePrice(){
 function addInvestment(){
   const type=$('invType').value,name=$('invName').value.trim(),qty=parseFloat($('invQty').value),buyPrice=smartAmount($('invBuyPrice').value),curPrice=smartAmount($('invCurPrice').value);
   if(!name||!qty||!buyPrice){showToast('Điền đầy đủ',false);return;}
-  const inv={id:Date.now(),type,name,qty,buyPrice,curPrice:curPrice||buyPrice};
+  const inv={id:Date.now(),type,name,qty,buyPrice,curPrice:curPrice||buyPrice,boughtAt:new Date().toISOString()};
   investments.push(inv);saveInv();$('invName').value='';$('invQty').value='';$('invBuyPrice').value='';$('invCurPrice').value='';$('invBP').textContent='';$('invCP').textContent='';
   renderInvest();updateAll();playSuccess();showToast('Đã thêm: '+name);cloudAddInv(inv);
 }
 function deleteInv(id){investments=investments.filter(i=>i.id!==id);saveInv();renderInvest();updateAll();cloudDeleteInv(id);}
 function updateInvPrice(id,raw){const i=investments.find(x=>x.id===id);if(i){i.curPrice=smartAmount(raw);saveInv();renderInvest();updateAll();cloudUpdateInv({id,curPrice:i.curPrice});}}
 
+// Thời điểm mua: khoản mới có boughtAt; khoản cũ suy từ id (id = Date.now() lúc thêm)
+function invBoughtDate(i){
+  if(i.boughtAt)return new Date(i.boughtAt);
+  const n=Number(i.id);
+  return (isFinite(n)&&n>1e12)?new Date(n):null;   // id kiểu epoch-ms hợp lệ
+}
+// Nhãn lời/lỗ rõ ràng cho từng khoản & tổng danh mục
+function pnlLabel(pnl,pct){
+  if(pnl>0)return `🟢 LỜI +${fmt(pnl)} (+${pct}%)`;
+  if(pnl<0)return `🔴 LỖ −${fmt(pnl)} (−${Math.abs(pct).toFixed(1)}%)`;
+  return `⚖️ HÒA VỐN (0%)`;
+}
 function renderInvest(){
   const totalInvested=investments.reduce((s,i)=>s+i.buyPrice*i.qty,0);const totalCurrent=investments.reduce((s,i)=>s+i.curPrice*i.qty,0);const totalPnL=totalCurrent-totalInvested;const pnlPct=totalInvested>0?((totalPnL/totalInvested)*100).toFixed(1):0;
-  $('invMetrics').innerHTML=`<div class="metric"><div class="label">Tổng vốn</div><div class="val val-white">${fmt(totalInvested)}</div></div><div class="metric"><div class="label">Hiện tại</div><div class="val val-blue">${fmt(totalCurrent)}</div></div><div class="metric"><div class="label">Lãi/Lỗ</div><div class="val ${totalPnL>=0?'val-green':'val-red'}">${totalPnL>=0?'+':''}${fmt(totalPnL)}</div><div class="sub-val">${pnlPct>0?'+':''}${pnlPct}%</div></div>`;
+  $('invMetrics').innerHTML=`<div class="metric"><div class="label">Tổng vốn</div><div class="val val-white">${fmt(totalInvested)}</div></div><div class="metric"><div class="label">Hiện tại</div><div class="val val-blue">${fmt(totalCurrent)}</div></div><div class="metric"><div class="label">Lãi/Lỗ</div><div class="val ${totalPnL>=0?'val-green':'val-red'}">${totalPnL>=0?'+':''}${fmt(totalPnL)}</div><div class="sub-val">${totalPnL>0?'🟢 Đang lời':totalPnL<0?'🔴 Đang lỗ':'⚖️ Hòa vốn'} · ${pnlPct>0?'+':''}${pnlPct}%</div></div>`;
   const typeEmoji={crypto:'🪙',stock:'📈',gold:'🥇',other:'📦'};const typeName={crypto:'Crypto',stock:'Cổ phiếu',gold:'Vàng',other:'Khác'};
   $('invGrid').innerHTML=investments.map(i=>{const cost=i.buyPrice*i.qty,cur=i.curPrice*i.qty,pnl=cur-cost;const pct=cost>0?((pnl/cost)*100).toFixed(1):0;
-    return `<div class="inv-card"><div class="inv-top"><div><div class="inv-name">${typeEmoji[i.type]} ${i.name}</div><div class="inv-type">${typeName[i.type]}</div></div><span class="inv-del" onclick="deleteInv(${i.id})">✕</span></div><div class="inv-row"><span>SL</span><b>${i.qty}</b></div><div class="inv-row"><span>Giá mua</span><b>${fmt(i.buyPrice)}</b></div><div class="inv-row"><span>Giá hiện tại</span><b><input type="number" value="${i.curPrice/1000}" step="any" style="background:var(--bg3);border:.5px solid var(--border2);border-radius:4px;color:var(--text);font-size:11px;padding:2px 6px;width:90px;text-align:right;outline:none;" onchange="updateInvPrice(${i.id},this.value)"/><span style="font-size:9px;color:var(--text3)">×1000</span></b></div><div class="inv-row"><span>Vốn</span><b>${fmt(cost)}</b></div><div class="inv-pnl ${pnl>=0?'val-green':'val-red'}">${pnl>=0?'+':''}${fmt(pnl)} (${pct>0?'+':''}${pct}%)</div></div>`;}).join('')||'<div class="empty">Chưa có khoản đầu tư</div>';
+    const bd=invBoughtDate(i);
+    const boughtStr=bd?bd.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+bd.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}):'—';
+    return `<div class="inv-card"><div class="inv-top"><div><div class="inv-name">${typeEmoji[i.type]} ${i.name}</div><div class="inv-type">${typeName[i.type]}</div></div><span class="inv-del" onclick="deleteInv(${i.id})">✕</span></div><div class="inv-row"><span>🕐 Mua lúc</span><b style="font-weight:500;color:var(--text2);">${boughtStr}</b></div><div class="inv-row"><span>SL</span><b>${i.qty}</b></div><div class="inv-row"><span>Giá mua</span><b>${fmt(i.buyPrice)}</b></div><div class="inv-row"><span>Giá hiện tại</span><b><input type="number" value="${i.curPrice/1000}" step="any" style="background:var(--bg3);border:.5px solid var(--border2);border-radius:4px;color:var(--text);font-size:11px;padding:2px 6px;width:90px;text-align:right;outline:none;" onchange="updateInvPrice(${i.id},this.value)"/><span style="font-size:9px;color:var(--text3)">×1000</span></b></div><div class="inv-row"><span>Vốn</span><b>${fmt(cost)}</b></div><div class="inv-pnl ${pnl>=0?'val-green':'val-red'}">${pnlLabel(pnl,pct)}</div></div>`;}).join('')||'<div class="empty">Chưa có khoản đầu tư</div>';
 }
 
 /* ── SETTINGS ── */
@@ -1823,7 +1837,12 @@ function initTilt(){/* disabled — glass style */}
 // ── COUNTING ANIMATION ──
 function animateCount(el,target,duration=800){
   if(!el||!target)return;
+  // Đang có animation dở trên phần tử này → HỦY và trả về chuỗi gốc trước đã.
+  // Không hủy thì lần chạy mới chụp giá-trị-giữa-chừng làm "gốc" → số đóng băng sai
+  // (lỗi thấy được khi bấm qua tab khác rồi quay lại nhanh).
+  if(el._acRaf){cancelAnimationFrame(el._acRaf);el._acRaf=null;if(el._acText!=null)el.textContent=el._acText;}
   const text=el.textContent;
+  el._acText=text;
   // Tách CỤM SỐ (kèm dấu chấm nhóm) ra khỏi chuỗi đã format, ví dụ:
   //   "₫20.000.000" → số "20.000.000", tiền tố "₫", hậu tố ""
   //   "−₫1.234"     → số "1.234", tiền tố "−₫" (giữ nguyên dấu âm)
@@ -1843,18 +1862,21 @@ function animateCount(el,target,duration=800){
     const eased=easeOutExpo(progress);
     const current=Math.round(startVal+(num-startVal)*eased);
     el.textContent=pre+current.toLocaleString('vi-VN')+post;
-    if(progress<1) requestAnimationFrame(tick);
+    if(progress<1) el._acRaf=requestAnimationFrame(tick);
     else{
+      el._acRaf=null;
       el.textContent=text; // khôi phục chuỗi gốc chính xác
       el.classList.add('counting');
       setTimeout(()=>el.classList.remove('counting'),300);
     }
   }
-  requestAnimationFrame(tick);
+  el._acRaf=requestAnimationFrame(tick);
 }
 
 function runCountingAnimations(){
-  document.querySelectorAll('.metric .val').forEach((el,i)=>{
+  // CHỈ animate ô số trên TRANG ĐANG MỞ — animate cả tab ẩn vừa vô ích vừa
+  // gây chồng chéo animation khi quay lại tab (nguồn gốc lỗi sai số).
+  document.querySelectorAll('.page.active .metric .val').forEach((el,i)=>{
     setTimeout(()=>animateCount(el,true,900+i*100),100+i*80);
   });
 }
