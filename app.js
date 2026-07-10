@@ -803,11 +803,15 @@ function fbSig(d){
 }
 // Chuỗi hoá ổn định (sắp key) → so sánh không phụ thuộc thứ tự key (Firebase trả khác thứ tự local)
 function stableStr(o){if(o===null||typeof o!=='object')return JSON.stringify(o);if(Array.isArray(o))return '['+o.map(stableStr).join(',')+']';return '{'+Object.keys(o).sort().map(function(k){return JSON.stringify(k)+':'+stableStr(o[k]);}).join(',')+'}';}
-// Cây dữ liệu hiện tại của máy (dạng object keyed-by-id) để diff/ghi từng nhánh
+// Cây dữ liệu hiện tại của máy (dạng object keyed-by-id) để diff/ghi từng nhánh.
+// QUAN TRỌNG: phải COPY từng mục (không dùng tham chiếu) — vì sửa giao dịch là sửa
+// TẠI CHỖ (t.amount=...), nếu baseline FB._lastSynced giữ cùng tham chiếu thì nó bị
+// "sửa theo" → fbDiff so sánh object với chính nó → tưởng không đổi → KHÔNG push,
+// và snapshot kế tiếp từ server sẽ hoàn tác bản sửa (bug: sửa số tiền không cập nhật).
 function fbTree(){
-  const txObj={};txData.forEach(function(t){if(t&&t.id!=null)txObj[String(t.id)]=t;});
-  const invObj={};investments.forEach(function(i){if(i&&i.id!=null)invObj[String(i.id)]=i;});
-  const accObj={};accounts.forEach(function(a){if(a&&a.id!=null)accObj[String(a.id)]=a;});
+  const txObj={};txData.forEach(function(t){if(t&&t.id!=null)txObj[String(t.id)]=Object.assign({},t);});
+  const invObj={};investments.forEach(function(i){if(i&&i.id!=null)invObj[String(i.id)]=Object.assign({},i);});
+  const accObj={};accounts.forEach(function(a){if(a&&a.id!=null)accObj[String(a.id)]=Object.assign({},a);});
   const settingsObj={opening:opening,catsChi:catsChi,catsThu:catsThu,budgets:budgets,monthMoney:monthMoneyData||null,salary:salaryData||null,installments:installments,monthlyFees:monthlyFees};
   return {transactions:txObj,investments:invObj,accounts:accObj,settings:JSON.stringify(settingsObj)};
 }
@@ -845,10 +849,14 @@ function fbDiff(prev,cur){
   return up;
 }
 
+// Clone sâu cây sync — baseline phải là BẢN CHỤP độc lập, không chung tham chiếu
+// với txData/investments/accounts (fbMergeColl đưa thẳng object server vào mảng live).
+function fbCloneTree(t){return JSON.parse(JSON.stringify(t));}
+
 function fbApply(val){
   const sig=fbSig({transactions:val.transactions,investments:val.investments,accounts:val.accounts,settings:val.settings});
   const serverTree={transactions:val.transactions||{},investments:val.investments||{},accounts:val.accounts||{},settings:(typeof val.settings==='string'?val.settings:JSON.stringify(val.settings||{}))};
-  if(sig===FB._pushSig){FB._lastSynced=serverTree;hideSplash();return;} // chính mình vừa ghi → chỉ cập nhật mốc đồng bộ
+  if(sig===FB._pushSig){FB._lastSynced=fbCloneTree(serverTree);hideSplash();return;} // chính mình vừa ghi → chỉ cập nhật mốc đồng bộ
   FB._applying=true;
   try{
     const last=FB._lastSynced||{};
@@ -884,7 +892,7 @@ function fbApply(val){
       if(monthMoneyData)localStorage.setItem('fin_month_money',JSON.stringify(monthMoneyData));else localStorage.removeItem('fin_month_money');
       localStorage.setItem('fin_installments',JSON.stringify(installments));
     }
-    FB._lastSynced=serverTree; // mốc = sự thật trên server (các mục pending cục bộ sẽ được đẩy ở lần save kế)
+    FB._lastSynced=fbCloneTree(serverTree); // mốc = BẢN CHỤP sự thật trên server (không chung tham chiếu với txData — xem fbCloneTree)
     FB._pushSig=sig;
   }catch(e){console.warn('fb apply',e);}
   FB._applying=false;
